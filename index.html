@@ -1185,16 +1185,36 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Open report in a new tab as a data URI — works in Safari on iOS
-  const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(currentReportHtml);
-  const a = document.createElement('a');
-  a.href = encoded;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  toast('Tap Share → Print → Save as PDF');
+  // Inject report into a print-only div, trigger print, then remove
+  // This works in iOS PWA where window.open is blocked
+  const printDiv = document.createElement('div');
+  printDiv.id = 'print-report';
+  printDiv.innerHTML = currentReportHtml.replace(/<html[^>]*>|<\/html>|<head>[\s\S]*<\/head>|<body[^>]*>|<\/body>/gi, '');
+
+  // Add print styles to hide app, show only report
+  const style = document.createElement('style');
+  style.id = 'print-style';
+  style.textContent = `
+    @media print {
+      .app, #report-overlay { display: none !important; }
+      #print-report { display: block !important; }
+    }
+    #print-report { display: none; }
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(printDiv);
+
+  setTimeout(() => {
+    window.print();
+    // Clean up after print dialog closes
+    setTimeout(() => {
+      const s = document.getElementById('print-style');
+      const d = document.getElementById('print-report');
+      if (s) s.remove();
+      if (d) d.remove();
+    }, 1000);
+  }, 300);
 }
 
 async function shareReport() {
