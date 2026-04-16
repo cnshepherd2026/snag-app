@@ -449,10 +449,13 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <div class="view" id="view-export">
     <div class="scroll">
       <div class="form-section">
-        <p style="font-size:13px; color:var(--text2); margin-bottom:16px; line-height:1.5;">Export a report for the current project. Photos are embedded in the PDF.</p>
+        <label class="form-label">Report title</label>
+        <input class="form-input" id="export-title" value="Snagging Report" placeholder="e.g. Site Visit Report" style="margin-bottom:16px;" />
+      </div>
+      <div class="form-section">
         <div class="export-option" onclick="generatePDF()">
           <div class="export-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
-          <div class="export-text"><h4>Snagging report (PDF)</h4><p>Full report with photos, sorted by location</p></div>
+          <div class="export-text"><h4>Preview report</h4><p>View and print to save as PDF</p></div>
         </div>
         <div class="export-option" onclick="exportCSV()">
           <div class="export-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg></div>
@@ -1117,6 +1120,8 @@ function generatePDF() {
   const snags = getSnags(currentProjectId);
   if (!p) return;
 
+  const reportTitle = (document.getElementById('export-title') || {value: 'Snagging Report'}).value.trim() || 'Snagging Report';
+
   const byLoc = {};
   snags.forEach(s => {
     const loc = s.location || 'Unassigned';
@@ -1165,7 +1170,7 @@ function generatePDF() {
   </style></head><body style="${S.body}">`;
 
   html += `<div style="${S.cover}">
-    <div style="${S.h1}">Snagging Report</div>
+    <div style="${S.h1}">${reportTitle}</div>
     <div style="${S.h2}">${p.name}</div>
     <div style="${S.meta}">
       <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref || '—'}</div></div>
@@ -1238,12 +1243,34 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Print directly from the preview iframe
-  const frame = document.getElementById('reportFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
+  // On iOS PWA, iframe.contentWindow.print() is blocked.
+  // Instead open a blob URL in a new window which Safari can print.
+  const blob = new Blob([currentReportHtml], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+
+  // Try Web Share with file first (most seamless on iOS)
+  const fname = currentReportName + '.html';
+  const file = new File([blob], fname, { type: 'text/html' });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: currentReportName, files: [file] })
+      .catch(() => printViaWindow(url));
+    return;
   }
+  printViaWindow(url);
+}
+
+function printViaWindow(url) {
+  const win = window.open(url, '_blank');
+  if (win) {
+    win.onload = () => { win.print(); };
+  } else {
+    // Fallback: download the file
+    const a = document.createElement('a');
+    a.href = url; a.download = currentReportName + '.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Saved — open in Safari to print as PDF');
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 
