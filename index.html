@@ -490,6 +490,16 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
       </div>
       <div class="form-row">
         <div class="form-section">
+          <label class="form-label">Prepared by</label>
+          <input class="form-input" id="np-author" placeholder="e.g. Chris Shepherd" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Company</label>
+          <input class="form-input" id="np-company" placeholder="e.g. JYM Ltd" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-section">
           <label class="form-label">Inspection date</label>
           <input class="form-input" id="np-date" type="date" />
         </div>
@@ -627,7 +637,17 @@ const DB = {
 function getProjects() { return DB.get('snag_projects') || []; }
 function saveProjects(p) { DB.set('snag_projects', p); }
 function getSnags(pid) { return DB.get('snag_items_' + pid) || []; }
-function saveSnags(pid, items) { DB.set('snag_items_' + pid, items); }
+function saveSnags(pid, items) {
+  try {
+    DB.set('snag_items_' + pid, items);
+    return true;
+  } catch(e) {
+    // localStorage full - try saving without photos
+    console.warn('Storage full, saving without photos:', e);
+    const slim = items.map(i => ({...i, photos: i.photos ? i.photos.slice(0,1) : []}));
+    try { DB.set('snag_items_' + pid, slim); return true; } catch(e2) { return false; }
+  }
+}
 
 let currentProjectId = null;
 let currentSnagId = null;
@@ -730,6 +750,8 @@ function showNewProjectModal() {
   document.getElementById('np-ref').value = '';
   document.getElementById('np-contractor').value = '';
   document.getElementById('np-client').value = '';
+  document.getElementById('np-author').value = '';
+  document.getElementById('np-company').value = '';
   document.getElementById('np-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('np-status').value = 'open';
   document.getElementById('projectModalTitle').textContent = 'New project';
@@ -743,10 +765,10 @@ function saveProject() {
   if (editingProjectId) {
     const idx = projects.findIndex(p => p.id === editingProjectId);
     if (idx > -1) {
-      projects[idx] = { ...projects[idx], name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value };
+      projects[idx] = { ...projects[idx], name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), author: document.getElementById('np-author').value.trim(), company: document.getElementById('np-company').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value };
     }
   } else {
-    projects.push({ id: 'p_' + Date.now(), name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value, created: new Date().toISOString() });
+    projects.push({ id: 'p_' + Date.now(), name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), author: document.getElementById('np-author').value.trim(), company: document.getElementById('np-company').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value, created: new Date().toISOString() });
   }
   saveProjects(projects);
   closeModal('modal-project');
@@ -927,7 +949,21 @@ function handlePhotoUpload(e) {
   const files = Array.from(e.target.files);
   files.forEach(f => {
     const reader = new FileReader();
-    reader.onload = ev => { modalPhotos.push(ev.target.result); renderModalPhotos(); };
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize to max 800px wide at 30% quality to keep storage small
+        const MAX = 800;
+        let w = img.width, h = img.height;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.30));
+        renderModalPhotos();
+      };
+      img.src = ev.target.result;
+    };
     reader.readAsDataURL(f);
   });
   e.target.value = '';
@@ -936,7 +972,7 @@ function handlePhotoUpload(e) {
 function renderModalPhotos() {
   const grid = document.getElementById('modalPhotoGrid');
   grid.innerHTML = modalPhotos.map((p, i) =>
-    `<div class="photo-thumb"><img src="${p}" /><button class="del-photo" onclick="removePhoto(${i})">×</button><button onclick="openAnnotator(${i})" style="position:absolute;bottom:4px;right:4px;width:24px;height:24px;background:rgba(0,0,0,0.6);border-radius:50%;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Annotate">✎</button></div>`
+    `<div class="photo-thumb"><img src="${p}" /><button class="del-photo" onclick="removePhoto(${i})" style="width:28px;height:28px;font-size:16px;" title="Delete photo">×</button><button onclick="openAnnotator(${i})" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;background:rgba(0,0,0,0.6);border-radius:50%;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Annotate">✎</button></div>`
   ).join('') + `<div class="add-photo-btn" onclick="document.getElementById('photoInput').click()">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
     Add photo
@@ -965,9 +1001,11 @@ function saveSnagFromModal() {
     const ref = (snags.length + 1).toString().padStart(3, '0');
     snags.push({ id: 's_' + Date.now(), ref, description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
   }
-  saveSnags(currentProjectId, snags);
+  const saved = saveSnags(currentProjectId, snags);
   const wasEditing = !!editingSnagId;
   editingSnagId = null;
+  savingSnag = false;
+  if (!saved) { toast('Storage full — try reducing photo count'); return; }
   closeModal('modal-snag');
   renderDetail(currentProjectId, false);
   toast(wasEditing ? 'Item updated' : 'Item added');
@@ -1057,6 +1095,8 @@ function generatePDF() {
       <div><div class="key">Date</div><div class="val">${p.date || new Date().toLocaleDateString('en-GB')}</div></div>
       <div><div class="key">Contractor</div><div class="val">${p.contractor || '—'}</div></div>
       <div><div class="key">Client</div><div class="val">${p.client || '—'}</div></div>
+      ${p.author ? `<div><div class="key">Prepared by</div><div class="val">${p.author}</div></div>` : ''}
+      ${p.company ? `<div><div class="key">Company</div><div class="val">${p.company}</div></div>` : ''}
     </div>
     <div class="stats">
       <div class="stat red"><div class="n">${open}</div><div class="l">Open</div></div>
@@ -1087,6 +1127,39 @@ function generatePDF() {
 
   html += `<div class="footer">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
 
+  // Generate as blob and share via native share sheet (iOS) or download (desktop)
+  const blob = new Blob([html], { type: 'text/html' });
+  const fileName = (p.name || 'snag').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report.html';
+
+  // iOS Safari PWA: use Web Share API with file
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], fileName, { type: 'text/html' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({
+        title: 'Snagging Report — ' + p.name,
+        files: [file]
+      }).then(() => toast('Report shared')).catch(() => fallbackExport(blob, fileName, html));
+      return;
+    }
+  }
+  fallbackExport(blob, fileName, html);
+}
+
+function fallbackExport(blob, fileName, html) {
+  // Try Web Share without file (just opens share sheet on iOS)
+  if (navigator.share) {
+    // Create object URL and share as link
+    const url = URL.createObjectURL(blob);
+    // On iOS PWA, open in same window so user can print/share from Safari
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    toast('Report downloading — open to print or share');
+    return;
+  }
+  // Desktop fallback — open in new tab
   const win = window.open('', '_blank');
   if (win) {
     win.document.write(html);
@@ -1094,7 +1167,12 @@ function generatePDF() {
     setTimeout(() => { win.focus(); win.print(); }, 600);
     toast('Report opened — use Print > Save as PDF');
   } else {
-    toast('Allow pop-ups to generate PDF');
+    // Last resort — download as file
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    toast('Report downloaded');
   }
 }
 
