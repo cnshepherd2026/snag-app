@@ -1249,55 +1249,41 @@ function closeReport() {
 }
 
 function exportHtml() {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(currentReportHtml, 'text/html');
-  const reportBody = doc.body.innerHTML;
-  const reportStyle = (doc.head.querySelector('style') || {textContent:''}).textContent;
+  // Remove any existing print frame
+  const existing = document.getElementById('snag-print-frame');
+  if (existing) existing.remove();
 
-  const origBody = document.body.innerHTML;
+  // Create a sandboxed iframe with allow-scripts so it can call print
+  const frame = document.createElement('iframe');
+  frame.id = 'snag-print-frame';
+  frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-modals');
+  frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;';
+  document.body.appendChild(frame);
 
-  document.documentElement.style.cssText = 'font-size:11pt;';
-  document.body.innerHTML = `<style>
-    @page {
-      size: A4 portrait;
-      margin: 12mm;
-    }
-    html {
-      font-size: 11pt !important;
-      background: #fff !important;
-      height: auto !important;
-      overflow: visible !important;
-    }
-    body {
-      font-size: 11pt !important;
-      font-family: Helvetica Neue, Arial, sans-serif !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      background: #fff !important;
-      color: #1a1a18 !important;
-      height: auto !important;
-      overflow: visible !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    * { box-sizing: border-box !important; }
-    img { max-width: 100% !important; height: auto !important; display: block !important; }
-    ${reportStyle}
-  </style>${reportBody}`;
+  // Write the exact same HTML as the export into the iframe
+  // Append an auto-print script so it prints as soon as it loads
+  const printHtml = currentReportHtml.replace('</body>', `
+    <script>
+      window.onload = function() {
+        window.print();
+        setTimeout(function() { window.parent.postMessage('printdone','*'); }, 1000);
+      };
+    <\/script>
+  </body>`);
 
-  // Allow DOM to repaint before printing
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      window.print();
+  frame.contentDocument.open();
+  frame.contentDocument.write(printHtml);
+  frame.contentDocument.close();
 
-      // Restore after a delay (print dialog is async on iOS)
+  // Listen for print done then clean up
+  window.addEventListener('message', function handler(e) {
+    if (e.data === 'printdone') {
+      window.removeEventListener('message', handler);
       setTimeout(() => {
-        document.documentElement.style.cssText = '';
-        document.body.innerHTML = origBody;
-        renderProjects();
-        setTopbarActions('projects');
-      }, 500);
-    });
+        const f = document.getElementById('snag-print-frame');
+        if (f) f.remove();
+      }, 1000);
+    }
   });
 }
 
