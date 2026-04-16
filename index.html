@@ -592,7 +592,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <div style="display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:52px; background:var(--text); flex-shrink:0;">
     <button onclick="closeReport()" style="background:none; border:none; color:rgba(255,255,255,0.7); font-size:17px; cursor:pointer; font-family:var(--body); padding:4px 0;">‹ Back</button>
     <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.5);">Report preview</span>
-    <button onclick="shareReport()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; height:34px; padding:0 14px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;">Share / Email</button>
+    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:rgba(255,255,255,0.8); height:34px; padding:0 12px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:500; cursor:pointer; margin-right:6px;">Export HTML</button><button onclick="shareReport()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; height:34px; padding:0 14px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;" id="sharePdfBtn">Share / Email</button>
   </div>
   <iframe id="reportFrame" style="flex:1; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
 </div>
@@ -1178,8 +1178,30 @@ function closeReport() {
   document.getElementById('report-overlay').style.display = 'none';
 }
 
+function exportHtml() {
+  const blob = new Blob([currentReportHtml], { type: 'text/html' });
+  const fname = currentReportName + '.html';
+  const file = new File([blob], fname, { type: 'text/html' });
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Snagging Report', files: [file] })
+      .catch(err => { if (err.name !== 'AbortError') htmlDownloadFallback(blob, fname); });
+    return;
+  }
+  htmlDownloadFallback(blob, fname);
+}
+
+function htmlDownloadFallback(blob, fname) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast('HTML saved — open in Safari then Print → Save as PDF');
+}
+
 async function shareReport() {
-  const btn = document.querySelector('#report-overlay button:last-child');
+  const btn = document.getElementById('sharePdfBtn');
   const orig = btn.textContent;
   btn.textContent = 'Generating PDF…';
   btn.disabled = true;
