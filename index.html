@@ -1138,7 +1138,7 @@ function generatePDF() {
 
   // All styles inline so report renders correctly in iframes and PDFShift
   const S = {
-    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:11pt;color:#1a1a18;margin:0;padding:0;',
+    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:11pt;color:#1a1a18;margin:0;padding:0;background:#fff;',
     cover: 'padding:30px 50px 24px;border-bottom:2px solid #1a1a18;margin-bottom:20px;',
     h1: 'font-size:22pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4px;',
     h2: 'font-size:12pt;font-weight:400;color:#6B6960;margin:0 0 14px;',
@@ -1165,8 +1165,12 @@ function generatePDF() {
   const projDateFmt = p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB');
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    @media print { body { margin:0; } }
     * { box-sizing: border-box; }
+    body { background: #fff !important; }
+    @media print {
+      body { margin: 0; background: #fff !important; }
+      @page { margin: 12mm; size: A4; }
+    }
   </style></head><body style="${S.body}">`;
 
   html += `<div style="${S.cover}">
@@ -1243,48 +1247,43 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Inject print-only styles and trigger window.print()
-  // This is the only reliable way to print in an iOS PWA
-  const styleId = 'snag-print-style';
-  let style = document.getElementById(styleId);
-  if (!style) {
-    style = document.createElement('style');
-    style.id = styleId;
-    document.head.appendChild(style);
+  // Create a hidden print iframe, write the clean report into it,
+  // then use @media print to show only that iframe full-screen
+  let pf = document.getElementById('snag-print-iframe');
+  if (!pf) {
+    pf = document.createElement('iframe');
+    pf.id = 'snag-print-iframe';
+    pf.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;';
+    document.body.appendChild(pf);
   }
-  // When printing: hide the app, show the report content
-  style.textContent = `
-    @media print {
-      body > * { display: none !important; }
-      #snag-print-content { display: block !important; }
+
+  // Inject @media print rule to show iframe full screen when printing
+  let ps = document.getElementById('snag-print-style');
+  if (!ps) {
+    ps = document.createElement('style');
+    ps.id = 'snag-print-style';
+    document.head.appendChild(ps);
+  }
+  ps.textContent = `@media print {
+    body > *:not(#snag-print-iframe) { display: none !important; }
+    #snag-print-iframe {
+      position: fixed !important;
+      top: 0 !important; left: 0 !important;
+      width: 100vw !important; height: 100vh !important;
+      visibility: visible !important;
     }
-  `;
+  }`;
 
-  // Create or update the print content div
-  let printDiv = document.getElementById('snag-print-content');
-  if (!printDiv) {
-    printDiv = document.createElement('div');
-    printDiv.id = 'snag-print-content';
-    printDiv.style.display = 'none';
-    document.body.appendChild(printDiv);
-  }
+  // Write report into iframe
+  pf.contentDocument.open();
+  pf.contentDocument.write(currentReportHtml);
+  pf.contentDocument.close();
 
-  // Extract just the body content from the report HTML
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(currentReportHtml, 'text/html');
-  printDiv.innerHTML = doc.body.innerHTML;
-
-  // Also inject the report's styles into the head for print
-  const reportStyle = doc.head.querySelector('style');
-  let printHeadStyle = document.getElementById('snag-print-head-style');
-  if (!printHeadStyle) {
-    printHeadStyle = document.createElement('style');
-    printHeadStyle.id = 'snag-print-head-style';
-    document.head.appendChild(printHeadStyle);
-  }
-  printHeadStyle.textContent = reportStyle ? reportStyle.textContent : '';
-
-  window.print();
+  // Wait for iframe to load then print
+  pf.onload = () => {
+    window.print();
+    pf.onload = null;
+  };
 }
 
 
