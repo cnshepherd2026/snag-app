@@ -39,7 +39,7 @@
 
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 15px; }
+html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 17px; }
 
 /* ── APP SHELL ── */
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
@@ -83,7 +83,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   flex-shrink: 0;
 }
 .projects-header h2 { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
-.projects-header p { font-size: 13px; color: var(--text2); }
+.projects-header p { font-size: 15px; color: var(--text2); }
 
 .project-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -99,12 +99,12 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .project-card:hover { box-shadow: var(--shadow); border-color: var(--border-med); }
 .project-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .project-name { font-family: var(--display); font-weight: 600; font-size: 15px; }
-.project-ref { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.05em; }
-.project-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text2); margin-top: 6px; }
+.project-ref { font-family: var(--mono); font-size: 12px; color: var(--text3); letter-spacing: 0.05em; }
+.project-meta { display: flex; gap: 12px; font-size: 14px; color: var(--text2); margin-top: 6px; }
 .project-meta span { display: flex; align-items: center; gap: 4px; }
 .project-meta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .status-pill {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
   padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
 }
 .status-open { background: var(--accent-light); color: var(--accent); }
@@ -125,12 +125,12 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   padding: 20px 20px 0; flex-shrink: 0;
 }
 .project-detail-header h2 { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 2px; }
-.project-detail-header p { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.project-detail-header p { font-size: 14px; color: var(--text2); font-family: var(--mono); }
 
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px 20px; flex-shrink: 0; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
 .stat-num { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1; }
-.stat-label { font-size: 10px; color: var(--text2); margin-top: 3px; font-family: var(--mono); letter-spacing: 0.04em; }
+.stat-label { font-size: 12px; color: var(--text2); margin-top: 3px; font-family: var(--mono); letter-spacing: 0.04em; }
 .stat-card.red .stat-num { color: var(--red); }
 .stat-card.amber .stat-num { color: var(--amber); }
 .stat-card.green .stat-num { color: var(--accent-mid); }
@@ -141,9 +141,9 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .section-header h3 { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text2); }
 .text-btn {
-  font-family: var(--mono); font-size: 11px; background: none; border: none;
-  color: var(--accent-mid); cursor: pointer; padding: 4px 8px;
-  border-radius: var(--radius); transition: background 0.15s;
+  font-family: var(--mono); font-size: 13px; background: var(--accent-light); border: 1px solid var(--accent-mid);
+  color: var(--accent-mid); cursor: pointer; padding: 8px 14px;
+  border-radius: var(--radius); transition: background 0.15s; font-weight: 500;
 }
 .text-btn:hover { background: var(--accent-light); }
 
@@ -157,10 +157,10 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .location-header:hover { background: var(--surface2); }
 .location-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
-.location-name { font-family: var(--display); font-size: 14px; font-weight: 600; }
+.location-name { font-family: var(--display); font-size: 16px; font-weight: 600; }
 .location-counts { display: flex; gap: 6px; align-items: center; }
 .count-badge {
-  font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+  font-family: var(--mono); font-size: 12px; padding: 2px 7px;
   border-radius: 20px; letter-spacing: 0.04em;
 }
 .cb-open { background: var(--red-light); color: var(--red); }
@@ -192,11 +192,11 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .snag-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .snag-body { flex: 1; min-width: 0; }
-.snag-desc { font-size: 13px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
+.snag-desc { font-size: 15px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
 .snag-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.snag-ref { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.snag-ref { font-family: var(--mono); font-size: 12px; color: var(--text3); }
 .snag-status {
-  font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
   text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
 }
 .ss-open { background: var(--red-light); color: var(--red); }
@@ -206,7 +206,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 
 /* ── SNAG DETAIL / ADD ── */
 .form-section { margin-bottom: 20px; }
-.form-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-label { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
 .form-input, .form-textarea, .form-select {
   width: 100%; padding: 10px 12px;
   background: var(--surface); border: 1px solid var(--border-med);
@@ -240,7 +240,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   aspect-ratio: 1; border-radius: var(--radius); border: 1.5px dashed var(--border-med);
   background: var(--surface); display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 4px;
-  cursor: pointer; color: var(--text3); font-size: 11px; font-family: var(--mono);
+  cursor: pointer; color: var(--text3); font-size: 13px; font-family: var(--mono);
   transition: border-color 0.15s, background 0.15s;
 }
 .add-photo-btn:hover { border-color: var(--accent-mid); background: var(--accent-light); color: var(--accent); }
@@ -252,7 +252,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .status-opt {
   flex: 1; padding: 8px 4px; border-radius: var(--radius);
   border: 1.5px solid var(--border-med); background: var(--surface);
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
   text-transform: uppercase; cursor: pointer; text-align: center;
   transition: all 0.15s; color: var(--text2);
 }
@@ -265,7 +265,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .priority-opt {
   flex: 1; padding: 8px 4px; border-radius: var(--radius);
   border: 1.5px solid var(--border-med); background: var(--surface);
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
   text-transform: uppercase; cursor: pointer; text-align: center;
   color: var(--text2); transition: all 0.15s;
 }
@@ -322,11 +322,12 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
 .modal-actions { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
 .modal-actions .btn-primary { flex: 1; }
+.modal-delete-hidden { visibility: hidden; pointer-events: none; opacity: 0; }
 
 /* ── EMPTY STATE ── */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
 .empty-state svg { width: 40px; height: 40px; stroke: var(--text3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; opacity: 0.5; }
-.empty-state p { font-size: 13px; line-height: 1.5; }
+.empty-state p { font-size: 15px; line-height: 1.5; }
 
 /* ── EXPORT VIEW ── */
 .export-option {
@@ -343,7 +344,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .export-icon svg { width: 20px; height: 20px; stroke: var(--accent-mid); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .export-text h4 { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-.export-text p { font-size: 12px; color: var(--text2); }
+.export-text p { font-size: 14px; color: var(--text2); }
 
 /* ── TOAST ── */
 .toast {
@@ -364,7 +365,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .filter-chip {
   flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
   border: 1px solid var(--border-med); background: var(--surface);
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
   text-transform: uppercase; cursor: pointer; color: var(--text2);
   transition: all 0.15s; white-space: nowrap;
 }
@@ -580,7 +581,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-snag')">Cancel</button>
-      <button class="btn-danger" id="modalDeleteBtn" onclick="deleteSnagFromModal()" style="display:none;">Delete</button>
+      <button class="btn-danger modal-delete-hidden" id="modalDeleteBtn" onclick="deleteSnagFromModal()">Delete</button>
       <button class="btn-primary" id="saveSnagBtn" onclick="saveSnagFromModal()">Save item</button>
     </div>
   </div>
@@ -899,7 +900,7 @@ function showNewSnagModal() {
   modalStatus = 'open';
   modalPriority = 'medium';
   document.getElementById('snagModalTitle').textContent = 'New snag item';
-  document.getElementById('modalDeleteBtn').style.display = 'none';
+  document.getElementById('modalDeleteBtn').classList.add('modal-delete-hidden');
   refreshStatusBtns();
   refreshPriorityBtns();
   renderModalPhotos();
@@ -920,7 +921,7 @@ function openSnag(id) {
   modalStatus = s.status || 'open';
   modalPriority = s.priority || 'medium';
   document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
-  document.getElementById('modalDeleteBtn').style.display = 'block';
+  document.getElementById('modalDeleteBtn').classList.remove('modal-delete-hidden');
   refreshStatusBtns();
   refreshPriorityBtns();
   renderModalPhotos();
