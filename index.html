@@ -1256,12 +1256,33 @@ function exportHtml() {
 
   const origBody = document.body.innerHTML;
 
+  document.documentElement.style.cssText = 'font-size:11pt;';
   document.body.innerHTML = `<style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+    html {
+      font-size: 11pt !important;
+      background: #fff !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    body {
+      font-size: 11pt !important;
+      font-family: Helvetica Neue, Arial, sans-serif !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      color: #1a1a18 !important;
+      height: auto !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    * { box-sizing: border-box !important; }
+    img { max-width: 100% !important; height: auto !important; display: block !important; }
     ${reportStyle}
-    * { box-sizing:border-box; }
-    html, body { margin:0; padding:0; background:#fff !important; font-family:Helvetica Neue,Arial,sans-serif; }
-    img { max-width:100% !important; height:auto !important; }
-    @page { margin:12mm; size:A4 portrait; }
   </style>${reportBody}`;
 
   // Allow DOM to repaint before printing
@@ -1271,6 +1292,7 @@ function exportHtml() {
 
       // Restore after a delay (print dialog is async on iOS)
       setTimeout(() => {
+        document.documentElement.style.cssText = '';
         document.body.innerHTML = origBody;
         renderProjects();
         setTopbarActions('projects');
