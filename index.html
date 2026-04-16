@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Snag">
+<meta name="theme-color" content="#1a1a18">
+<link rel="manifest" href="manifest.json">
+<title>Snag — Site Inspection</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F2F0EB;
+  --surface: #FAFAF8;
+  --surface2: #EEECEA;
+  --border: rgba(0,0,0,0.08);
+  --border-med: rgba(0,0,0,0.14);
+  --text: #1A1A18;
+  --text2: #6B6960;
+  --text3: #A09D98;
+  --accent: #2D5016;
+  --accent-light: #EBF2E3;
+  --accent-mid: #4A8024;
+  --red: #C0392B;
+  --red-light: #FDECEA;
+  --amber: #B45309;
+  --amber-light: #FEF3C7;
+  --blue: #1D4ED8;
+  --blue-light: #EFF6FF;
+  --mono: 'Syne Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body: 'DM Sans', sans-serif;
+  --radius: 6px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06);
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 15px; }
+
+/* ── APP SHELL ── */
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+/* ── TOP NAV ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; height: 56px;
+  background: var(--text); color: #fff;
+  flex-shrink: 0; position: relative; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-back {
+  background: none; border: none; color: rgba(255,255,255,0.6);
+  font-size: 22px; cursor: pointer; padding: 4px 6px 4px 0; line-height: 1;
+  display: none;
+}
+.topbar-back.visible { display: block; }
+.app-logo { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: #fff; }
+.app-logo span { color: var(--accent-mid); }
+.topbar-title { font-family: var(--display); font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.9); display: none; }
+.topbar-title.visible { display: block; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: var(--radius);
+  background: rgba(255,255,255,0.1); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.85); transition: background 0.15s;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.18); }
+.icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── VIEWS ── */
+.view { flex: 1; overflow: hidden; display: none; flex-direction: column; }
+.view.active { display: flex; }
+.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; }
+
+/* ── PROJECTS LIST ── */
+.projects-header {
+  padding: 24px 20px 0;
+  flex-shrink: 0;
+}
+.projects-header h2 { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
+.projects-header p { font-size: 13px; color: var(--text2); }
+
+.project-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 18px;
+  margin-bottom: 10px; cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  position: relative; overflow: hidden;
+}
+.project-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--accent-mid);
+}
+.project-card:hover { box-shadow: var(--shadow); border-color: var(--border-med); }
+.project-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.project-name { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.project-ref { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.05em; }
+.project-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text2); margin-top: 6px; }
+.project-meta span { display: flex; align-items: center; gap: 4px; }
+.project-meta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.status-pill {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
+}
+.status-open { background: var(--accent-light); color: var(--accent); }
+.status-closed { background: var(--surface2); color: var(--text3); }
+
+.fab {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--text); color: #fff; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25); transition: transform 0.15s;
+}
+.fab:hover { transform: scale(1.06); }
+.fab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── PROJECT DETAIL ── */
+.project-detail-header {
+  padding: 20px 20px 0; flex-shrink: 0;
+}
+.project-detail-header h2 { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 2px; }
+.project-detail-header p { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px 20px; flex-shrink: 0; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.stat-num { font-family: var(--display); font-size: 22px; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 10px; color: var(--text2); margin-top: 3px; font-family: var(--mono); letter-spacing: 0.04em; }
+.stat-card.red .stat-num { color: var(--red); }
+.stat-card.amber .stat-num { color: var(--amber); }
+.stat-card.green .stat-num { color: var(--accent-mid); }
+
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px 10px; flex-shrink: 0;
+}
+.section-header h3 { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text2); }
+.text-btn {
+  font-family: var(--mono); font-size: 11px; background: none; border: none;
+  color: var(--accent-mid); cursor: pointer; padding: 4px 8px;
+  border-radius: var(--radius); transition: background 0.15s;
+}
+.text-btn:hover { background: var(--accent-light); }
+
+/* ── LOCATION ACCORDION ── */
+.location-group { margin-bottom: 8px; }
+.location-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer; transition: background 0.12s;
+  user-select: none;
+}
+.location-header:hover { background: var(--surface2); }
+.location-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
+.location-name { font-family: var(--display); font-size: 14px; font-weight: 600; }
+.location-counts { display: flex; gap: 6px; align-items: center; }
+.count-badge {
+  font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+  border-radius: 20px; letter-spacing: 0.04em;
+}
+.cb-open { background: var(--red-light); color: var(--red); }
+.cb-done { background: var(--accent-light); color: var(--accent); }
+.chevron { transition: transform 0.2s; color: var(--text3); font-size: 12px; }
+.chevron.open { transform: rotate(180deg); }
+
+.location-items {
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden; display: none;
+}
+.location-items.open { display: block; }
+
+/* ── SNAG ITEM ── */
+.snag-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; background: var(--surface);
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  transition: background 0.12s;
+}
+.snag-item:last-child { border-bottom: none; }
+.snag-item:hover { background: var(--surface2); }
+.snag-thumb {
+  width: 48px; height: 48px; border-radius: 4px; object-fit: cover;
+  background: var(--surface2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); font-size: 20px; overflow: hidden;
+}
+.snag-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.snag-body { flex: 1; min-width: 0; }
+.snag-desc { font-size: 13px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
+.snag-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.snag-ref { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.snag-status {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
+}
+.ss-open { background: var(--red-light); color: var(--red); }
+.ss-progress { background: var(--amber-light); color: var(--amber); }
+.ss-done { background: var(--accent-light); color: var(--accent); }
+.snag-priority { font-size: 10px; }
+
+/* ── SNAG DETAIL / ADD ── */
+.form-section { margin-bottom: 20px; }
+.form-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-textarea, .form-select {
+  width: 100%; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--border-med);
+  border-radius: var(--radius); font-family: var(--body); font-size: 14px;
+  color: var(--text); outline: none; transition: border-color 0.15s;
+  -webkit-appearance: none; appearance: none;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent-mid); }
+.form-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-select-wrap { position: relative; }
+.form-select-wrap::after {
+  content: '▾'; position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%); color: var(--text2); pointer-events: none; font-size: 12px;
+}
+
+/* ── PHOTO GRID ── */
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.photo-thumb {
+  aspect-ratio: 1; border-radius: var(--radius); overflow: hidden;
+  background: var(--surface2); position: relative; cursor: pointer;
+}
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.photo-thumb .del-photo {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+  background: rgba(0,0,0,0.6); border-radius: 50%; border: none;
+  color: #fff; font-size: 14px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.add-photo-btn {
+  aspect-ratio: 1; border-radius: var(--radius); border: 1.5px dashed var(--border-med);
+  background: var(--surface); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer; color: var(--text3); font-size: 11px; font-family: var(--mono);
+  transition: border-color 0.15s, background 0.15s;
+}
+.add-photo-btn:hover { border-color: var(--accent-mid); background: var(--accent-light); color: var(--accent); }
+.add-photo-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+#photoInput { display: none; }
+
+/* ── STATUS SELECTOR ── */
+.status-group { display: flex; gap: 8px; }
+.status-opt {
+  flex: 1; padding: 8px 4px; border-radius: var(--radius);
+  border: 1.5px solid var(--border-med); background: var(--surface);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  transition: all 0.15s; color: var(--text2);
+}
+.status-opt.sel-open { background: var(--red-light); border-color: var(--red); color: var(--red); }
+.status-opt.sel-progress { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
+.status-opt.sel-done { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); }
+
+/* ── PRIORITY ── */
+.priority-group { display: flex; gap: 8px; }
+.priority-opt {
+  flex: 1; padding: 8px 4px; border-radius: var(--radius);
+  border: 1.5px solid var(--border-med); background: var(--surface);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  color: var(--text2); transition: all 0.15s;
+}
+.priority-opt.sel-low { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+.priority-opt.sel-medium { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
+.priority-opt.sel-high { background: var(--red-light); border-color: var(--red); color: var(--red); }
+
+/* ── BOTTOM SAVE BAR ── */
+.save-bar {
+  padding: 12px 20px; background: var(--surface);
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  display: flex; gap: 10px;
+}
+.btn-primary {
+  flex: 1; height: 44px; background: var(--text); color: #fff;
+  border: none; border-radius: var(--radius); font-family: var(--display);
+  font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary {
+  height: 44px; padding: 0 18px; background: transparent;
+  border: 1px solid var(--border-med); border-radius: var(--radius);
+  font-family: var(--body); font-size: 14px; color: var(--text2);
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--surface2); }
+.btn-danger {
+  height: 44px; padding: 0 18px; background: transparent;
+  border: 1px solid var(--red); border-radius: var(--radius);
+  font-family: var(--body); font-size: 14px; color: var(--red);
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-danger:hover { background: var(--red-light); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 500; display: none; align-items: flex-end;
+  animation: fadeOverlay 0.2s ease;
+}
+.modal-overlay.open { display: flex; }
+@keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--surface); width: 100%; max-height: 90vh;
+  border-radius: 16px 16px 0 0; overflow: hidden;
+  animation: slideUp 0.25s ease;
+  display: flex; flex-direction: column;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-handle { width: 36px; height: 4px; background: var(--border-med); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.modal-header h3 { font-family: var(--display); font-size: 17px; font-weight: 700; }
+.modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.modal-actions { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+.modal-actions .btn-primary { flex: 1; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+.empty-state svg { width: 40px; height: 40px; stroke: var(--text3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; opacity: 0.5; }
+.empty-state p { font-size: 13px; line-height: 1.5; }
+
+/* ── EXPORT VIEW ── */
+.export-option {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); margin-bottom: 10px; cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.export-option:hover { box-shadow: var(--shadow); }
+.export-icon {
+  width: 40px; height: 40px; border-radius: var(--radius);
+  background: var(--accent-light); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.export-icon svg { width: 20px; height: 20px; stroke: var(--accent-mid); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.export-text h4 { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.export-text p { font-size: 12px; color: var(--text2); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--text); color: #fff; padding: 10px 18px; border-radius: 20px;
+  font-size: 13px; font-family: var(--mono); letter-spacing: 0.04em;
+  opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 1000; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  display: flex; gap: 6px; padding: 0 20px 12px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; flex-shrink: 0;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border-med); background: var(--surface);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; color: var(--text2);
+  transition: all 0.15s; white-space: nowrap;
+}
+.filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+/* ── SWIPE DELETE (visual hint) ── */
+@media (max-width: 768px) {
+  .scroll { padding: 16px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="topbar-back" id="backBtn" onclick="goBack()">‹</button>
+      <div class="app-logo" id="appLogo"><span>S</span>nag</div>
+      <div class="topbar-title" id="topbarTitle"></div>
+    </div>
+    <div class="topbar-actions" id="topbarActions">
+      <!-- dynamic -->
+    </div>
+  </div>
+
+  <!-- VIEW: PROJECTS -->
+  <div class="view active" id="view-projects">
+    <div class="projects-header">
+      <h2>Projects</h2>
+      <p id="projectCount">Loading…</p>
+    </div>
+    <div class="filter-bar" style="padding-top:12px;">
+      <button class="filter-chip active" onclick="filterProjects('all',this)">All</button>
+      <button class="filter-chip" onclick="filterProjects('open',this)">Open</button>
+      <button class="filter-chip" onclick="filterProjects('closed',this)">Closed</button>
+    </div>
+    <div class="scroll" id="projectsList"></div>
+    <button class="fab" onclick="showNewProjectModal()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- VIEW: PROJECT DETAIL -->
+  <div class="view" id="view-detail">
+    <div class="project-detail-header">
+      <h2 id="detailProjectName">—</h2>
+      <p id="detailProjectRef">—</p>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="section-header">
+      <h3>Snag items</h3>
+      <button class="text-btn" onclick="showNewSnagModal()">+ Add item</button>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="filterSnags('all',this)">All</button>
+      <button class="filter-chip" onclick="filterSnags('open',this)">Open</button>
+      <button class="filter-chip" onclick="filterSnags('in-progress',this)">In progress</button>
+      <button class="filter-chip" onclick="filterSnags('complete',this)">Complete</button>
+    </div>
+    <div class="scroll" id="snagsList"></div>
+    <button class="fab" onclick="showNewSnagModal()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- VIEW: SNAG DETAIL / EDIT -->
+  <div class="view" id="view-snag">
+    <div class="scroll" id="snagDetailScroll"></div>
+    <div class="save-bar">
+      <button class="btn-secondary" onclick="goBack()">Cancel</button>
+      <button class="btn-danger" id="deleteSnagBtn" onclick="deleteCurrentSnag()">Delete</button>
+      <button class="btn-primary" onclick="saveSnag()">Save</button>
+    </div>
+  </div>
+
+  <!-- VIEW: EXPORT -->
+  <div class="view" id="view-export">
+    <div class="scroll">
+      <div class="form-section">
+        <p style="font-size:13px; color:var(--text2); margin-bottom:16px; line-height:1.5;">Export a report for the current project. Photos are embedded in the PDF.</p>
+        <div class="export-option" onclick="generatePDF()">
+          <div class="export-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+          <div class="export-text"><h4>Snagging report (PDF)</h4><p>Full report with photos, sorted by location</p></div>
+        </div>
+        <div class="export-option" onclick="exportCSV()">
+          <div class="export-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg></div>
+          <div class="export-text"><h4>Schedule (CSV)</h4><p>Flat list of all items for spreadsheet use</p></div>
+        </div>
+      </div>
+      <div id="exportPreview"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: NEW PROJECT -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3 id="projectModalTitle">New project</h3></div>
+    <div class="modal-body">
+      <div class="form-section">
+        <label class="form-label">Project name</label>
+        <input class="form-input" id="np-name" placeholder="e.g. Riverside Apartments Block A" />
+      </div>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label">Reference</label>
+          <input class="form-input" id="np-ref" placeholder="e.g. 2024/045" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Contractor</label>
+          <input class="form-input" id="np-contractor" placeholder="e.g. ABC Build Ltd" />
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Client</label>
+        <input class="form-input" id="np-client" placeholder="e.g. XYZ Developments" />
+      </div>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label">Inspection date</label>
+          <input class="form-input" id="np-date" type="date" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Status</label>
+          <div class="form-select-wrap">
+            <select class="form-select" id="np-status">
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-project')">Cancel</button>
+      <button class="btn-primary" onclick="saveProject()">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NEW / EDIT SNAG -->
+<div class="modal-overlay" id="modal-snag">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3 id="snagModalTitle">New snag item</h3></div>
+    <div class="modal-body">
+      <div class="form-section">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="ns-desc" placeholder="Describe the defect or issue…"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label">Location</label>
+          <input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" />
+          <datalist id="locationSuggestions"></datalist>
+        </div>
+        <div class="form-section">
+          <label class="form-label">Trade</label>
+          <input class="form-input" id="ns-trade" placeholder="e.g. Joinery" list="tradeSuggestions" />
+          <datalist id="tradeSuggestions">
+            <option value="Joinery"><option value="Plastering"><option value="Decoration">
+            <option value="M&amp;E"><option value="Roofing"><option value="Drainage">
+            <option value="Brickwork"><option value="Tiling"><option value="Flooring">
+            <option value="Glazing"><option value="External works">
+          </datalist>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Date identified</label>
+        <input class="form-input" id="ns-date" type="date" />
+      </div>
+      <div class="form-section">
+        <label class="form-label">Status</label>
+        <div class="status-group">
+          <button class="status-opt sel-open" data-val="open" onclick="selectStatus(this)">Open</button>
+          <button class="status-opt" data-val="in-progress" onclick="selectStatus(this)">In progress</button>
+          <button class="status-opt" data-val="complete" onclick="selectStatus(this)">Complete</button>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Priority</label>
+        <div class="priority-group">
+          <button class="priority-opt" data-val="low" onclick="selectPriority(this)">Low</button>
+          <button class="priority-opt sel-medium" data-val="medium" onclick="selectPriority(this)">Medium</button>
+          <button class="priority-opt" data-val="high" onclick="selectPriority(this)">High</button>
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Photos</label>
+        <div class="photo-grid" id="modalPhotoGrid"></div>
+        <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotoUpload(event)" />
+      </div>
+      <div class="form-section">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="ns-notes" placeholder="Additional notes, contractor response…" style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-snag')">Cancel</button>
+      <button class="btn-primary" onclick="saveSnagFromModal()">Save item</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PHOTO ANNOTATOR -->
+<div class="modal-overlay" id="modal-annotate" style="align-items:center; background:rgba(0,0,0,0.92);">
+  <div style="width:100%; max-width:700px; display:flex; flex-direction:column; height:100dvh; max-height:100dvh;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; flex-shrink:0;">
+      <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.5);">Annotate photo</span>
+      <div style="display:flex; gap:8px;">
+        <button onclick="annotateUndo()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:34px; height:34px; border-radius:6px; font-size:16px; cursor:pointer;" title="Undo">&#x21A9;</button>
+        <button onclick="annotateClear()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:34px; height:34px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--mono);">CLR</button>
+        <button onclick="annotateDone()" style="background:#fff; border:none; color:#1a1a18; height:34px; padding:0 16px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;">Done</button>
+        <button onclick="closeModal('modal-annotate')" style="background:rgba(255,255,255,0.1); border:none; color:rgba(255,255,255,0.6); width:34px; height:34px; border-radius:6px; font-size:20px; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; padding:0 16px 12px; flex-shrink:0; flex-wrap:wrap;">
+      <div style="display:flex; gap:6px;">
+        <button class="ann-tool-btn" id="toolFreehand" onclick="setAnnTool('freehand',this)" style="background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.4); color:#fff; height:34px; padding:0 12px; border-radius:6px; font-family:var(--mono); font-size:10px; letter-spacing:0.06em; cursor:pointer;">FREEHAND</button>
+        <button class="ann-tool-btn" id="toolLine" onclick="setAnnTool('line',this)" style="background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); height:34px; padding:0 12px; border-radius:6px; font-family:var(--mono); font-size:10px; letter-spacing:0.06em; cursor:pointer;">LINE</button>
+        <button class="ann-tool-btn" id="toolArrow" onclick="setAnnTool('arrow',this)" style="background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); height:34px; padding:0 12px; border-radius:6px; font-family:var(--mono); font-size:10px; letter-spacing:0.06em; cursor:pointer;">ARROW</button>
+        <button class="ann-tool-btn" id="toolRect" onclick="setAnnTool('rect',this)" style="background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.6); height:34px; padding:0 12px; border-radius:6px; font-family:var(--mono); font-size:10px; letter-spacing:0.06em; cursor:pointer;">BOX</button>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; margin-left:4px;">
+        <span style="font-size:11px; color:rgba(255,255,255,0.4); font-family:var(--mono);">COLOUR</span>
+        <div id="colourSwatches" style="display:flex; gap:4px;">
+          <button onclick="setAnnColour('#FF3B30',this)" style="width:26px;height:26px;border-radius:50%;background:#FF3B30;border:2px solid #fff;cursor:pointer;flex-shrink:0;"></button>
+          <button onclick="setAnnColour('#FF9500',this)" style="width:26px;height:26px;border-radius:50%;background:#FF9500;border:2px solid transparent;cursor:pointer;flex-shrink:0;"></button>
+          <button onclick="setAnnColour('#FFFF00',this)" style="width:26px;height:26px;border-radius:50%;background:#FFFF00;border:2px solid transparent;cursor:pointer;flex-shrink:0;"></button>
+          <button onclick="setAnnColour('#34C759',this)" style="width:26px;height:26px;border-radius:50%;background:#34C759;border:2px solid transparent;cursor:pointer;flex-shrink:0;"></button>
+          <button onclick="setAnnColour('#FFFFFF',this)" style="width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid transparent;cursor:pointer;flex-shrink:0;"></button>
+        </div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span style="font-size:11px; color:rgba(255,255,255,0.4); font-family:var(--mono);">SIZE</span>
+        <input type="range" id="brushSize" min="2" max="20" value="4" step="1" style="width:70px; accent-color:#fff;" />
+      </div>
+    </div>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;" id="annotateCanvasWrap">
+      <canvas id="annotateCanvas" style="max-width:100%; max-height:100%; display:block; touch-action:none;"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STORAGE ──
+const DB = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } },
+  set(k,v) { localStorage.setItem(k, JSON.stringify(v)); },
+};
+
+function getProjects() { return DB.get('snag_projects') || []; }
+function saveProjects(p) { DB.set('snag_projects', p); }
+function getSnags(pid) { return DB.get('snag_items_' + pid) || []; }
+function saveSnags(pid, items) { DB.set('snag_items_' + pid, items); }
+
+let currentProjectId = null;
+let currentSnagId = null;
+let modalPhotos = []; // base64 strings
+let editingSnagId = null;
+let editingProjectId = null;
+let snagFilter = 'all';
+let projectFilter = 'all';
+
+// ── NAV ──
+const viewStack = ['view-projects'];
+
+function showView(id, title) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (!viewStack.includes(id) || viewStack[viewStack.length-1] !== id) viewStack.push(id);
+  const isRoot = id === 'view-projects';
+  document.getElementById('backBtn').classList.toggle('visible', !isRoot);
+  document.getElementById('appLogo').style.display = isRoot ? 'block' : 'none';
+  document.getElementById('topbarTitle').textContent = title || '';
+  document.getElementById('topbarTitle').classList.toggle('visible', !isRoot);
+}
+
+function goBack() {
+  viewStack.pop();
+  const prev = viewStack[viewStack.length - 1] || 'view-projects';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(prev).classList.add('active');
+  const isRoot = prev === 'view-projects';
+  document.getElementById('backBtn').classList.toggle('visible', !isRoot);
+  document.getElementById('appLogo').style.display = isRoot ? 'block' : 'none';
+  document.getElementById('topbarTitle').classList.toggle('visible', !isRoot);
+  if (prev === 'view-projects') { renderProjects(); setTopbarActions('projects'); }
+  if (prev === 'view-detail') { renderDetail(currentProjectId, false); setTopbarActions('detail'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
+}
+
+function setTopbarActions(ctx) {
+  const el = document.getElementById('topbarActions');
+  if (ctx === 'projects') {
+    el.innerHTML = '';
+  } else if (ctx === 'detail') {
+    el.innerHTML = `
+      <button class="icon-btn" onclick="showExportView()" title="Export">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>`;
+  } else if (ctx === 'export') {
+    el.innerHTML = '';
+  }
+}
+
+// ── PROJECTS ──
+function renderProjects() {
+  const projects = getProjects().filter(p => projectFilter === 'all' || p.status === projectFilter);
+  const el = document.getElementById('projectsList');
+  const total = getProjects().length;
+  document.getElementById('projectCount').textContent = total === 0 ? 'No projects yet' : total + ' project' + (total !== 1 ? 's' : '');
+  if (!projects.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><p>No projects yet.<br>Tap + to create your first project.</p></div>`;
+    return;
+  }
+  el.innerHTML = projects.map(p => {
+    const snags = getSnags(p.id);
+    const open = snags.filter(s => s.status === 'open').length;
+    const done = snags.filter(s => s.status === 'complete').length;
+    return `<div class="project-card" onclick="openProject('${p.id}')">
+      <div class="project-card-top">
+        <div>
+          <div class="project-name">${p.name}</div>
+          <div class="project-ref">${p.ref || '—'} ${p.contractor ? '· ' + p.contractor : ''}</div>
+        </div>
+        <span class="status-pill ${p.status === 'open' ? 'status-open' : 'status-closed'}">${p.status}</span>
+      </div>
+      <div class="project-meta">
+        <span><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>${snags.length} items</span>
+        ${open ? `<span style="color:var(--red)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${open} open</span>` : ''}
+        ${done ? `<span style="color:var(--accent-mid)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${done} done</span>` : ''}
+        ${p.date ? `<span>${p.date}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterProjects(f, el) {
+  projectFilter = f;
+  document.querySelectorAll('.filter-bar .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderProjects();
+}
+
+function openProject(id) {
+  currentProjectId = id;
+  snagFilter = 'all';
+  renderDetail(id, true);
+  setTopbarActions('detail');
+}
+
+function showNewProjectModal() {
+  editingProjectId = null;
+  document.getElementById('np-name').value = '';
+  document.getElementById('np-ref').value = '';
+  document.getElementById('np-contractor').value = '';
+  document.getElementById('np-client').value = '';
+  document.getElementById('np-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('np-status').value = 'open';
+  document.getElementById('projectModalTitle').textContent = 'New project';
+  openModal('modal-project');
+}
+
+function saveProject() {
+  const name = document.getElementById('np-name').value.trim();
+  if (!name) { toast('Project name required'); return; }
+  const projects = getProjects();
+  if (editingProjectId) {
+    const idx = projects.findIndex(p => p.id === editingProjectId);
+    if (idx > -1) {
+      projects[idx] = { ...projects[idx], name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value };
+    }
+  } else {
+    projects.push({ id: 'p_' + Date.now(), name, ref: document.getElementById('np-ref').value.trim(), contractor: document.getElementById('np-contractor').value.trim(), client: document.getElementById('np-client').value.trim(), date: document.getElementById('np-date').value, status: document.getElementById('np-status').value, created: new Date().toISOString() });
+  }
+  saveProjects(projects);
+  closeModal('modal-project');
+  renderProjects();
+  toast('Project saved');
+}
+
+// ── PROJECT DETAIL ──
+function renderDetail(pid, switchView) {
+  const projects = getProjects();
+  const p = projects.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById('detailProjectName').textContent = p.name;
+  document.getElementById('detailProjectRef').textContent = [p.ref, p.contractor, p.client].filter(Boolean).join(' · ');
+
+  const snags = getSnags(pid);
+  const open = snags.filter(s => s.status === 'open').length;
+  const inProg = snags.filter(s => s.status === 'in-progress').length;
+  const done = snags.filter(s => s.status === 'complete').length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card red"><div class="stat-num">${open}</div><div class="stat-label">Open</div></div>
+    <div class="stat-card amber"><div class="stat-num">${inProg}</div><div class="stat-label">In progress</div></div>
+    <div class="stat-card green"><div class="stat-num">${done}</div><div class="stat-label">Complete</div></div>
+    <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total</div></div>
+  `;
+
+  // Populate location suggestions
+  const locations = [...new Set(snags.map(s => s.location).filter(Boolean))];
+  document.getElementById('locationSuggestions').innerHTML = locations.map(l => `<option value="${l}">`).join('');
+
+  if (switchView !== false) showView('view-detail', p.name);
+
+  const filtered = snags.filter(s => snagFilter === 'all' || s.status === snagFilter);
+  const el = document.getElementById('snagsList');
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No items yet.<br>Tap + to add your first snag.</p></div>`;
+    return;
+  }
+
+  // Group by location
+  const byLocation = {};
+  filtered.forEach(s => {
+    const loc = s.location || 'Unassigned';
+    if (!byLocation[loc]) byLocation[loc] = [];
+    byLocation[loc].push(s);
+  });
+
+  el.innerHTML = Object.entries(byLocation).map(([loc, items]) => {
+    const locOpen = items.filter(i => i.status === 'open').length;
+    const locDone = items.filter(i => i.status === 'complete').length;
+    const itemsHtml = items.map(s => snagItemHtml(s)).join('');
+    return `<div class="location-group">
+      <div class="location-header open" onclick="toggleLocation(this)">
+        <span class="location-name">${loc}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${locOpen ? `<span class="count-badge cb-open">${locOpen} open</span>` : ''}
+          ${locDone ? `<span class="count-badge cb-done">${locDone} done</span>` : ''}
+          <span class="chevron open">▾</span>
+        </div>
+      </div>
+      <div class="location-items open">${itemsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function snagItemHtml(s) {
+  const statusClass = { open: 'ss-open', 'in-progress': 'ss-progress', complete: 'ss-done' }[s.status] || 'ss-open';
+  const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' }[s.status] || s.status;
+  const priorityEmoji = { low: '↓', medium: '→', high: '↑' }[s.priority] || '';
+  const thumb = s.photos && s.photos[0]
+    ? `<div class="snag-thumb"><img src="${s.photos[0]}" alt="photo" /></div>`
+    : `<div class="snag-thumb">📷</div>`;
+  return `<div class="snag-item" onclick="openSnag('${s.id}')">
+    ${thumb}
+    <div class="snag-body">
+      <div class="snag-desc">${s.description || 'No description'}</div>
+      <div class="snag-meta">
+        <span class="snag-ref">#${s.ref || s.id.slice(-4)}</span>
+        <span class="snag-status ${statusClass}">${statusLabel}</span>
+        ${s.trade ? `<span style="font-size:11px;color:var(--text3);">${s.trade}</span>` : ''}
+        ${s.dateIdentified ? `<span style="font-size:11px;color:var(--text3);">${s.dateIdentified}</span>` : ''}
+        ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleLocation(header) {
+  header.classList.toggle('open');
+  const items = header.nextElementSibling;
+  items.classList.toggle('open');
+  header.querySelector('.chevron').classList.toggle('open');
+}
+
+function filterSnags(f, el) {
+  snagFilter = f;
+  document.querySelectorAll('#view-detail .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderDetail(currentProjectId, false);
+}
+
+// ── SNAG MODAL ──
+let modalStatus = 'open';
+let modalPriority = 'medium';
+
+function showNewSnagModal() {
+  editingSnagId = null;
+  document.getElementById('ns-desc').value = '';
+  document.getElementById('ns-location').value = '';
+  document.getElementById('ns-trade').value = '';
+  document.getElementById('ns-notes').value = '';
+  document.getElementById('ns-date').value = new Date().toISOString().split('T')[0];
+  modalPhotos = [];
+  modalStatus = 'open';
+  modalPriority = 'medium';
+  document.getElementById('snagModalTitle').textContent = 'New snag item';
+  refreshStatusBtns();
+  refreshPriorityBtns();
+  renderModalPhotos();
+  openModal('modal-snag');
+}
+
+function openSnag(id) {
+  const snags = getSnags(currentProjectId);
+  const s = snags.find(x => x.id === id);
+  if (!s) return;
+  editingSnagId = id;
+  document.getElementById('ns-desc').value = s.description || '';
+  document.getElementById('ns-location').value = s.location || '';
+  document.getElementById('ns-trade').value = s.trade || '';
+  document.getElementById('ns-notes').value = s.notes || '';
+  document.getElementById('ns-date').value = s.dateIdentified || new Date().toISOString().split('T')[0];
+  modalPhotos = s.photos ? [...s.photos] : [];
+  modalStatus = s.status || 'open';
+  modalPriority = s.priority || 'medium';
+  document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
+  refreshStatusBtns();
+  refreshPriorityBtns();
+  renderModalPhotos();
+  openModal('modal-snag');
+}
+
+function selectStatus(btn) {
+  modalStatus = btn.dataset.val;
+  refreshStatusBtns();
+}
+
+function refreshStatusBtns() {
+  document.querySelectorAll('.status-opt').forEach(b => {
+    b.className = 'status-opt';
+    if (b.dataset.val === modalStatus) {
+      if (modalStatus === 'open') b.classList.add('sel-open');
+      else if (modalStatus === 'in-progress') b.classList.add('sel-progress');
+      else if (modalStatus === 'complete') b.classList.add('sel-done');
+    }
+  });
+}
+
+function selectPriority(btn) {
+  modalPriority = btn.dataset.val;
+  refreshPriorityBtns();
+}
+
+function refreshPriorityBtns() {
+  document.querySelectorAll('.priority-opt').forEach(b => {
+    b.className = 'priority-opt';
+    if (b.dataset.val === modalPriority) {
+      if (modalPriority === 'low') b.classList.add('sel-low');
+      else if (modalPriority === 'medium') b.classList.add('sel-medium');
+      else if (modalPriority === 'high') b.classList.add('sel-high');
+    }
+  });
+}
+
+function handlePhotoUpload(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => { modalPhotos.push(ev.target.result); renderModalPhotos(); };
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderModalPhotos() {
+  const grid = document.getElementById('modalPhotoGrid');
+  grid.innerHTML = modalPhotos.map((p, i) =>
+    `<div class="photo-thumb"><img src="${p}" /><button class="del-photo" onclick="removePhoto(${i})">×</button><button onclick="openAnnotator(${i})" style="position:absolute;bottom:4px;right:4px;width:24px;height:24px;background:rgba(0,0,0,0.6);border-radius:50%;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Annotate">✎</button></div>`
+  ).join('') + `<div class="add-photo-btn" onclick="document.getElementById('photoInput').click()">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    Add photo
+  </div>`;
+}
+
+function removePhoto(i) {
+  modalPhotos.splice(i, 1);
+  renderModalPhotos();
+}
+
+function saveSnagFromModal() {
+  const desc = document.getElementById('ns-desc').value.trim();
+  if (!desc) { toast('Description required'); return; }
+  const snags = getSnags(currentProjectId);
+  if (editingSnagId) {
+    const idx = snags.findIndex(s => s.id === editingSnagId);
+    if (idx > -1) {
+      snags[idx] = { ...snags[idx], description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], updated: new Date().toISOString() };
+    }
+  } else {
+    const ref = (snags.length + 1).toString().padStart(3, '0');
+    snags.push({ id: 's_' + Date.now(), ref, description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
+  }
+  saveSnags(currentProjectId, snags);
+  closeModal('modal-snag');
+  renderDetail(currentProjectId, false);
+  toast(editingSnagId ? 'Item updated' : 'Item added');
+}
+
+function deleteCurrentSnag() {
+  if (!editingSnagId) return;
+  if (!confirm('Delete this snag item?')) return;
+  const snags = getSnags(currentProjectId).filter(s => s.id !== editingSnagId);
+  saveSnags(currentProjectId, snags);
+  closeModal('modal-snag');
+  renderDetail(currentProjectId, false);
+  toast('Item deleted');
+}
+
+// ── EXPORT ──
+function showExportView() {
+  setTopbarActions('export');
+  document.getElementById('exportPreview').innerHTML = '';
+  showView('view-export', 'Export');
+}
+
+function exportCSV() {
+  const p = getProjects().find(x => x.id === currentProjectId);
+  const snags = getSnags(currentProjectId);
+  const header = ['Ref','Description','Location','Trade','Status','Priority','Date Identified','Notes','Created'];
+  const rows = snags.map(s => [s.ref||s.id.slice(-4), `"${(s.description||'').replace(/"/g,'""')}"`, `"${s.location||''}"`, s.trade||'', s.status||'', s.priority||'', s.dateIdentified||'', `"${(s.notes||'').replace(/"/g,'""')}"`, s.created ? s.created.split('T')[0] : '']);
+  const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+  download(csv, `${p ? p.name.replace(/\s+/g,'-') : 'snag'}-schedule.csv`, 'text/csv');
+  toast('CSV downloaded');
+}
+
+function generatePDF() {
+  const p = getProjects().find(x => x.id === currentProjectId);
+  const snags = getSnags(currentProjectId);
+  if (!p) return;
+
+  const byLoc = {};
+  snags.forEach(s => {
+    const loc = s.location || 'Unassigned';
+    if (!byLoc[loc]) byLoc[loc] = [];
+    byLoc[loc].push(s);
+  });
+
+  const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' };
+  const statusColour = { open: '#C0392B', 'in-progress': '#B45309', complete: '#4A8024' };
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; color: #1a1a18; margin: 0; padding: 0; }
+    .cover { padding: 60px 50px; border-bottom: 3px solid #1a1a18; margin-bottom: 30px; }
+    .cover h1 { font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .cover h2 { font-size: 14pt; font-weight: 400; color: #6B6960; margin: 0 0 24px; }
+    .cover-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 10pt; }
+    .cover-meta .key { color: #6B6960; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.06em; }
+    .cover-meta .val { font-weight: 500; }
+    .stats { display: flex; gap: 16px; margin: 24px 0 0; }
+    .stat { background: #f2f0eb; padding: 12px 18px; border-radius: 6px; }
+    .stat .n { font-size: 22pt; font-weight: 800; line-height: 1; }
+    .stat .l { font-size: 8pt; color: #6B6960; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+    .stat.red .n { color: #C0392B; }
+    .stat.amber .n { color: #B45309; }
+    .stat.green .n { color: #4A8024; }
+    h3.loc { font-size: 13pt; font-weight: 700; padding: 8px 50px; background: #1a1a18; color: #fff; margin: 0; page-break-before: auto; }
+    .snag { display: flex; gap: 16px; padding: 14px 50px; border-bottom: 1px solid #eee; page-break-inside: avoid; }
+    .snag-num { font-family: monospace; font-size: 10pt; color: #A09D98; min-width: 40px; padding-top: 2px; }
+    .snag-body { flex: 1; }
+    .snag-desc { font-size: 11pt; font-weight: 600; margin-bottom: 4px; }
+    .snag-meta { font-size: 9pt; color: #6B6960; margin-bottom: 8px; }
+    .snag-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .snag-notes { font-size: 10pt; color: #444; margin-top: 8px; padding: 8px; background: #f9f9f8; border-radius: 4px; }
+    .snag-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .snag-photos img { width: 180px; height: 130px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+    .footer { text-align: center; font-size: 8pt; color: #A09D98; padding: 30px; border-top: 1px solid #eee; margin-top: 20px; }
+    @media print { .cover { padding: 40px; } h3.loc { padding: 8px 40px; } .snag { padding: 14px 40px; } }
+  </style></head><body>`;
+
+  const open = snags.filter(s => s.status==='open').length;
+  const inProg = snags.filter(s => s.status==='in-progress').length;
+  const done = snags.filter(s => s.status==='complete').length;
+
+  html += `<div class="cover">
+    <h1>Snagging Report</h1>
+    <h2>${p.name}</h2>
+    <div class="cover-meta">
+      <div><div class="key">Reference</div><div class="val">${p.ref || '—'}</div></div>
+      <div><div class="key">Date</div><div class="val">${p.date || new Date().toLocaleDateString('en-GB')}</div></div>
+      <div><div class="key">Contractor</div><div class="val">${p.contractor || '—'}</div></div>
+      <div><div class="key">Client</div><div class="val">${p.client || '—'}</div></div>
+    </div>
+    <div class="stats">
+      <div class="stat red"><div class="n">${open}</div><div class="l">Open</div></div>
+      <div class="stat amber"><div class="n">${inProg}</div><div class="l">In progress</div></div>
+      <div class="stat green"><div class="n">${done}</div><div class="l">Complete</div></div>
+      <div class="stat"><div class="n">${snags.length}</div><div class="l">Total items</div></div>
+    </div>
+  </div>`;
+
+  Object.entries(byLoc).forEach(([loc, items]) => {
+    html += `<h3 class="loc">${loc}</h3>`;
+    items.forEach(s => {
+      const sc = statusColour[s.status] || '#888';
+      const sl = statusLabel[s.status] || s.status;
+      const photos = (s.photos || []).map(ph => `<img src="${ph}" />`).join('');
+      html += `<div class="snag">
+        <div class="snag-num">#${s.ref || s.id.slice(-4)}</div>
+        <div class="snag-body">
+          <div class="snag-desc">${s.description || ''}</div>
+          <div class="snag-meta">${[s.dateIdentified, s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
+          <span class="snag-status" style="background:${sc}20;color:${sc};">${sl}</span>
+          ${s.notes ? `<div class="snag-notes">${s.notes}</div>` : ''}
+          ${photos ? `<div class="snag-photos">${photos}</div>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+
+  html += `<div class="footer">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
+
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 600);
+    toast('Report opened — use Print > Save as PDF');
+  } else {
+    toast('Allow pop-ups to generate PDF');
+  }
+}
+
+function download(content, filename, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], {type}));
+  a.download = filename;
+  a.click();
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ── TOAST ──
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── INIT ──
+renderProjects();
+setTopbarActions('projects');
+</script>
+
+<!-- PWA Service Worker -->
+<script>
+
+// ── ANNOTATION ──
+let annTool = 'freehand';
+let annColour = '#FF3B30';
+let annCanvas, annCtx, annImg;
+let annDrawing = false;
+let annStartX, annStartY;
+let annHistory = []; // snapshots for undo
+let annEditIndex = -1; // which photo in modalPhotos we're editing
+
+function openAnnotator(photoIndex) {
+  annEditIndex = photoIndex;
+  annCanvas = document.getElementById('annotateCanvas');
+  annCtx = annCanvas.getContext('2d');
+  annImg = new Image();
+  annImg.onload = function() {
+    const wrap = document.getElementById('annotateCanvasWrap');
+    const maxW = wrap.clientWidth || window.innerWidth;
+    const maxH = wrap.clientHeight || (window.innerHeight - 160);
+    const scale = Math.min(maxW / annImg.width, maxH / annImg.height, 1);
+    annCanvas.width = Math.round(annImg.width * scale);
+    annCanvas.height = Math.round(annImg.height * scale);
+    annCtx.drawImage(annImg, 0, 0, annCanvas.width, annCanvas.height);
+    annHistory = [annCtx.getImageData(0, 0, annCanvas.width, annCanvas.height)];
+    setAnnTool('freehand', document.getElementById('toolFreehand'));
+  };
+  annImg.src = modalPhotos[photoIndex];
+  openModal('modal-annotate');
+
+  // Touch events
+  annCanvas.addEventListener('touchstart', annTouchStart, {passive:false});
+  annCanvas.addEventListener('touchmove', annTouchMove, {passive:false});
+  annCanvas.addEventListener('touchend', annTouchEnd, {passive:false});
+  annCanvas.addEventListener('mousedown', annMouseDown);
+  annCanvas.addEventListener('mousemove', annMouseMove);
+  annCanvas.addEventListener('mouseup', annMouseUp);
+}
+
+function getPos(e, canvas) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / r.width;
+  const scaleY = canvas.height / r.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - r.left) * scaleX, y: (clientY - r.top) * scaleY };
+}
+
+function annTouchStart(e) { e.preventDefault(); annBegin(getPos(e, annCanvas)); }
+function annTouchMove(e) { e.preventDefault(); annMove(getPos(e, annCanvas)); }
+function annTouchEnd(e) { e.preventDefault(); annEnd(); }
+function annMouseDown(e) { annBegin(getPos(e, annCanvas)); }
+function annMouseMove(e) { if (annDrawing) annMove(getPos(e, annCanvas)); }
+function annMouseUp(e) { annEnd(); }
+
+function annBegin(pos) {
+  annDrawing = true;
+  annStartX = pos.x; annStartY = pos.y;
+  annCtx.strokeStyle = annColour;
+  annCtx.lineWidth = parseInt(document.getElementById('brushSize').value);
+  annCtx.lineCap = 'round';
+  annCtx.lineJoin = 'round';
+  if (annTool === 'freehand') {
+    annCtx.beginPath();
+    annCtx.moveTo(pos.x, pos.y);
+  }
+}
+
+function annMove(pos) {
+  if (!annDrawing) return;
+  const size = parseInt(document.getElementById('brushSize').value);
+  annCtx.strokeStyle = annColour;
+  annCtx.lineWidth = size;
+  if (annTool === 'freehand') {
+    annCtx.lineTo(pos.x, pos.y);
+    annCtx.stroke();
+  } else {
+    // For line/arrow/rect: redraw from last saved snapshot
+    if (annHistory.length > 0) annCtx.putImageData(annHistory[annHistory.length-1], 0, 0);
+    annCtx.beginPath();
+    if (annTool === 'line') {
+      annCtx.moveTo(annStartX, annStartY);
+      annCtx.lineTo(pos.x, pos.y);
+      annCtx.stroke();
+    } else if (annTool === 'arrow') {
+      drawArrow(annCtx, annStartX, annStartY, pos.x, pos.y, size);
+    } else if (annTool === 'rect') {
+      annCtx.strokeRect(annStartX, annStartY, pos.x - annStartX, pos.y - annStartY);
+    }
+  }
+}
+
+function annEnd() {
+  if (!annDrawing) return;
+  annDrawing = false;
+  if (annTool === 'freehand') annCtx.closePath();
+  annHistory.push(annCtx.getImageData(0, 0, annCanvas.width, annCanvas.height));
+  if (annHistory.length > 30) annHistory.shift();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, size) {
+  const headLen = Math.max(12, size * 3);
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
+  ctx.stroke();
+}
+
+function annotateUndo() {
+  if (annHistory.length <= 1) return;
+  annHistory.pop();
+  annCtx.putImageData(annHistory[annHistory.length-1], 0, 0);
+}
+
+function annotateClear() {
+  annCtx.putImageData(annHistory[0], 0, 0);
+  annHistory = [annHistory[0]];
+}
+
+function annotateDone() {
+  if (annEditIndex < 0) return;
+  modalPhotos[annEditIndex] = annCanvas.toDataURL('image/jpeg', 0.92);
+  closeModal('modal-annotate');
+  renderModalPhotos();
+  // remove listeners
+  annCanvas.removeEventListener('touchstart', annTouchStart);
+  annCanvas.removeEventListener('touchmove', annTouchMove);
+  annCanvas.removeEventListener('touchend', annTouchEnd);
+  annCanvas.removeEventListener('mousedown', annMouseDown);
+  annCanvas.removeEventListener('mousemove', annMouseMove);
+  annCanvas.removeEventListener('mouseup', annMouseUp);
+}
+
+function setAnnTool(tool, btn) {
+  annTool = tool;
+  document.querySelectorAll('.ann-tool-btn').forEach(b => {
+    b.style.background = 'rgba(255,255,255,0.08)';
+    b.style.borderColor = 'rgba(255,255,255,0.15)';
+    b.style.color = 'rgba(255,255,255,0.6)';
+  });
+  btn.style.background = 'rgba(255,255,255,0.2)';
+  btn.style.borderColor = 'rgba(255,255,255,0.6)';
+  btn.style.color = '#fff';
+}
+
+function setAnnColour(col, btn) {
+  annColour = col;
+  document.querySelectorAll('#colourSwatches button').forEach(b => b.style.border = '2px solid transparent');
+  btn.style.border = '2px solid #fff';
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>
