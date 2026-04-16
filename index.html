@@ -570,7 +570,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-snag')">Cancel</button>
-      <button class="btn-primary" onclick="saveSnagFromModal()">Save item</button>
+      <button class="btn-primary" id="saveSnagBtn" onclick="saveSnagFromModal()">Save item</button>
     </div>
   </div>
 </div>
@@ -962,9 +962,11 @@ function saveSnagFromModal() {
     snags.push({ id: 's_' + Date.now(), ref, description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
   }
   saveSnags(currentProjectId, snags);
+  const wasEditing = !!editingSnagId;
+  editingSnagId = null;
   closeModal('modal-snag');
   renderDetail(currentProjectId, false);
-  toast(editingSnagId ? 'Item updated' : 'Item added');
+  toast(wasEditing ? 'Item updated' : 'Item added');
 }
 
 function deleteCurrentSnag() {
@@ -1104,7 +1106,26 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => {
+    if (e.target === m) m.classList.remove('open');
+  });
+  // Prevent iOS touch events on modal content from bubbling to overlay
+  const modal = m.querySelector('.modal');
+  if (modal) {
+    modal.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+    modal.addEventListener('click', e => e.stopPropagation());
+  }
+});
+
+// iOS: make save button respond to touchend for snappier feel
+document.addEventListener('DOMContentLoaded', () => {
+  const saveBtn = document.getElementById('saveSnagBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('touchend', e => {
+      e.preventDefault();
+      saveSnagFromModal();
+    });
+  }
 });
 
 // ── TOAST ──
