@@ -1185,36 +1185,31 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Inject report into a print-only div, trigger print, then remove
-  // This works in iOS PWA where window.open is blocked
-  const printDiv = document.createElement('div');
-  printDiv.id = 'print-report';
-  printDiv.innerHTML = currentReportHtml.replace(/<html[^>]*>|<\/html>|<head>[\s\S]*<\/head>|<body[^>]*>|<\/body>/gi, '');
+  // Write report into a hidden iframe and print from it
+  const frame = document.createElement('iframe');
+  frame.id = 'print-frame';
+  frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999;background:#fff;';
+  document.body.appendChild(frame);
 
-  // Add print styles to hide app, show only report
-  const style = document.createElement('style');
-  style.id = 'print-style';
-  style.textContent = `
-    @media print {
-      .app, #report-overlay { display: none !important; }
-      #print-report { display: block !important; }
-    }
-    #print-report { display: none; }
-  `;
+  frame.contentDocument.open();
+  frame.contentDocument.write(currentReportHtml);
+  frame.contentDocument.close();
 
-  document.head.appendChild(style);
-  document.body.appendChild(printDiv);
+  // Add a print button and close button into the frame
+  const closeBtn = frame.contentDocument.createElement('div');
+  closeBtn.style.cssText = 'position:fixed;top:0;left:0;right:0;display:flex;gap:10px;padding:10px 16px;background:#1a1a18;z-index:10000;';
+  closeBtn.innerHTML = '<button onclick="window.parent.closePrintFrame()" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:17px;cursor:pointer;font-family:sans-serif;padding:4px 8px 4px 0;">‹ Back</button><span style="flex:1;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);align-self:center;letter-spacing:0.08em;text-transform:uppercase;">Print preview</span><button onclick="window.print()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;height:36px;padding:0 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:sans-serif;">Print / Save PDF</button>';
+  frame.contentDocument.body.insertBefore(closeBtn, frame.contentDocument.body.firstChild);
 
-  setTimeout(() => {
-    window.print();
-    // Clean up after print dialog closes
-    setTimeout(() => {
-      const s = document.getElementById('print-style');
-      const d = document.getElementById('print-report');
-      if (s) s.remove();
-      if (d) d.remove();
-    }, 1000);
-  }, 300);
+  // Add top padding so content isn't hidden behind the bar
+  const padDiv = frame.contentDocument.createElement('div');
+  padDiv.style.height = '60px';
+  frame.contentDocument.body.insertBefore(padDiv, closeBtn.nextSibling);
+}
+
+function closePrintFrame() {
+  const f = document.getElementById('print-frame');
+  if (f) f.remove();
 }
 
 async function shareReport() {
