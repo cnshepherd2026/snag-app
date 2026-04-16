@@ -1149,12 +1149,11 @@ function generatePDF() {
   </div>`;
 
   Object.entries(byLoc).forEach(([loc, items]) => {
-    html += `<div style="${S.locH}">${loc}</div>`;
-    items.forEach(s => {
+    items.forEach((s, idx) => {
       const sc = statusColour[s.status] || '#888';
       const sl = statusLabel[s.status] || s.status;
       const photos = (s.photos || []).map(ph => `<img style="${S.photo}" src="${ph}" />`).join('');
-      html += `<div style="${S.snag}">
+      const snagHtml = `<div style="${S.snag}">
         <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
@@ -1164,6 +1163,15 @@ function generatePDF() {
           ${photos ? `<div style="${S.photos}">${photos}</div>` : ''}
         </div>
       </div>`;
+      if (idx === 0) {
+        // Wrap heading + first item together so they never split across pages
+        html += `<div style="page-break-inside:avoid;break-inside:avoid;">
+          <div style="${S.locH}">${loc}</div>
+          ${snagHtml}
+        </div>`;
+      } else {
+        html += snagHtml;
+      }
     });
   });
 
