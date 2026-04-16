@@ -1243,34 +1243,48 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // On iOS PWA, iframe.contentWindow.print() is blocked.
-  // Instead open a blob URL in a new window which Safari can print.
-  const blob = new Blob([currentReportHtml], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-
-  // Try Web Share with file first (most seamless on iOS)
-  const fname = currentReportName + '.html';
-  const file = new File([blob], fname, { type: 'text/html' });
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: currentReportName, files: [file] })
-      .catch(() => printViaWindow(url));
-    return;
+  // Inject print-only styles and trigger window.print()
+  // This is the only reliable way to print in an iOS PWA
+  const styleId = 'snag-print-style';
+  let style = document.getElementById(styleId);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = styleId;
+    document.head.appendChild(style);
   }
-  printViaWindow(url);
-}
+  // When printing: hide the app, show the report content
+  style.textContent = `
+    @media print {
+      body > * { display: none !important; }
+      #snag-print-content { display: block !important; }
+    }
+  `;
 
-function printViaWindow(url) {
-  const win = window.open(url, '_blank');
-  if (win) {
-    win.onload = () => { win.print(); };
-  } else {
-    // Fallback: download the file
-    const a = document.createElement('a');
-    a.href = url; a.download = currentReportName + '.html';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    toast('Saved — open in Safari to print as PDF');
+  // Create or update the print content div
+  let printDiv = document.getElementById('snag-print-content');
+  if (!printDiv) {
+    printDiv = document.createElement('div');
+    printDiv.id = 'snag-print-content';
+    printDiv.style.display = 'none';
+    document.body.appendChild(printDiv);
   }
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+  // Extract just the body content from the report HTML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(currentReportHtml, 'text/html');
+  printDiv.innerHTML = doc.body.innerHTML;
+
+  // Also inject the report's styles into the head for print
+  const reportStyle = doc.head.querySelector('style');
+  let printHeadStyle = document.getElementById('snag-print-head-style');
+  if (!printHeadStyle) {
+    printHeadStyle = document.createElement('style');
+    printHeadStyle.id = 'snag-print-head-style';
+    document.head.appendChild(printHeadStyle);
+  }
+  printHeadStyle.textContent = reportStyle ? reportStyle.textContent : '';
+
+  window.print();
 }
 
 
