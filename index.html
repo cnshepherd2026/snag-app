@@ -1138,48 +1138,43 @@ function generatePDF() {
 
   // All styles inline so report renders correctly in iframes and PDFShift
   const S = {
-    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:11pt;color:#1a1a18;margin:0;padding:0;background:#fff;',
-    cover: 'padding:30px 50px 24px;border-bottom:2px solid #1a1a18;margin-bottom:20px;',
-    h1: 'font-size:22pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4px;',
-    h2: 'font-size:12pt;font-weight:400;color:#6B6960;margin:0 0 14px;',
-    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:10pt;',
-    metaKey: 'color:#6B6960;text-transform:uppercase;font-size:8pt;letter-spacing:0.06em;',
-    metaVal: 'font-weight:500;font-size:10pt;',
-    stats: 'display:flex;gap:10px;margin:14px 0 0;',
-    stat: 'background:#f2f0eb;padding:8px 14px;border-radius:6px;',
-    statN: 'font-size:16pt;font-weight:800;line-height:1;',
-    statL: 'font-size:8pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;',
-    locH: 'font-size:10pt;font-weight:700;padding:5px 50px;background:#1a1a18;color:#fff;margin:12px 0 0;letter-spacing:0.04em;text-transform:uppercase;',
-    snag: 'display:flex;gap:16px;padding:14px 50px;border-bottom:1px solid #eee;',
-    snagNum: 'font-family:monospace;font-size:10pt;color:#A09D98;min-width:36px;padding-top:2px;flex-shrink:0;',
-    snagBody: 'flex:1;',
-    snagDesc: 'font-size:11pt;font-weight:600;margin-bottom:4px;',
-    snagMeta: 'font-size:9pt;color:#6B6960;margin-bottom:6px;',
-    snagStatus: 'display:inline-block;padding:2px 8px;border-radius:10px;font-size:8pt;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;',
-    snagNotes: 'font-size:10pt;color:#444;margin-top:8px;padding:8px;background:#f9f9f8;border-radius:4px;',
-    photos: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;',
-    photo: 'width:180px;height:130px;object-fit:cover;border-radius:4px;border:1px solid #ddd;',
-    footer: 'text-align:center;font-size:8pt;color:#A09D98;padding:30px;border-top:1px solid #eee;margin-top:20px;',
+    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:10pt;color:#1a1a18;margin:0;padding:0;background:#fff;',
+    cover: 'padding:16px 0 14px;border-bottom:2px solid #1a1a18;margin-bottom:12px;',
+    h1: 'font-size:18pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 2px;',
+    h2: 'font-size:11pt;font-weight:400;color:#6B6960;margin:0 0 10px;',
+    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:3px 20px;font-size:9pt;',
+    metaKey: 'color:#6B6960;text-transform:uppercase;font-size:7pt;letter-spacing:0.06em;',
+    metaVal: 'font-weight:500;font-size:9pt;',
+    stats: 'display:flex;gap:8px;margin:10px 0 0;',
+    stat: 'background:#f2f0eb;padding:6px 12px;border-radius:4px;',
+    statN: 'font-size:14pt;font-weight:800;line-height:1;',
+    statL: 'font-size:7pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;',
+    locH: 'font-size:8pt;font-weight:700;padding:4px 0;background:#1a1a18;color:#fff;margin:8px 0 0;letter-spacing:0.06em;text-transform:uppercase;padding-left:8px;',
+    snag: 'display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eee;',
+    snagNum: 'font-family:monospace;font-size:8pt;color:#A09D98;min-width:30px;padding-top:1px;flex-shrink:0;',
+    snagBody: 'flex:1;min-width:0;',
+    snagDesc: 'font-size:10pt;font-weight:600;margin-bottom:2px;',
+    snagMeta: 'font-size:8pt;color:#6B6960;margin-bottom:4px;',
+    snagStatus: 'display:inline-block;padding:1px 6px;border-radius:8px;font-size:7pt;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;',
+    snagNotes: 'font-size:9pt;color:#444;margin-top:6px;padding:6px;background:#f9f9f8;border-radius:3px;',
+    footer: 'text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;',
   };
 
   const projDateFmt = p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB');
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     * { box-sizing: border-box; }
-    body { background: #fff; font-size: 11pt; }
+    body { background: #fff; font-size: 10pt; margin: 0; padding: 16px 20px; }
     img { max-width: 100%; height: auto; }
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
     @media print {
       body { margin: 0; background: #fff; }
       img { max-width: 100% !important; height: auto !important; }
     }
-    @page {
-      size: A4 portrait;
-      margin: 15mm;
-      margin-top: 12mm;
-      margin-bottom: 12mm;
-    }
-    @page :first { margin-top: 12mm; }
-  </style></head><body style="${S.body}">`;
+  </style></head><body style="${S.body};padding:16px 20px;">`;
 
   html += `<div style="${S.cover}">
     <div style="${S.h1}">${reportTitle}</div>
@@ -1201,18 +1196,15 @@ function generatePDF() {
   </div>`;
 
   Object.entries(byLoc).forEach(([loc, items]) => {
-    // Location heading — break-after:avoid keeps it glued to the first item below
-    html += `<div style="${S.locH};break-after:avoid;page-break-after:avoid;">${loc}</div>`;
-    items.forEach((s) => {
+    items.forEach((s, idx) => {
       const sc = statusColour[s.status] || '#888';
       const sl = statusLabel[s.status] || s.status;
-      // Photos on the right side of the text, max 2 per row, smaller size
       const photoHtml = (s.photos && s.photos.length)
-        ? `<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:30%;margin-left:16px;">
-            ${s.photos.map(ph => `<img style="width:100%;height:auto;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
+        ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;width:28%;margin-left:10px;">
+            ${s.photos.map(ph => `<img style="width:100%;height:auto;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
            </div>`
         : '';
-      html += `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
+      const snagRow = `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
         <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
@@ -1222,6 +1214,15 @@ function generatePDF() {
         </div>
         ${photoHtml}
       </div>`;
+      if (idx === 0) {
+        // display:table is the most reliable way to keep heading+first item together in Safari
+        html += `<div style="display:table;width:100%;break-inside:avoid;page-break-inside:avoid;">
+          <div style="${S.locH}">${loc}</div>
+          ${snagRow}
+        </div>`;
+      } else {
+        html += snagRow;
+      }
     });
   });
 
