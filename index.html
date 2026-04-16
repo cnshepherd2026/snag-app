@@ -1094,79 +1094,80 @@ function generatePDF() {
   const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' };
   const statusColour = { open: '#C0392B', 'in-progress': '#B45309', complete: '#4A8024' };
 
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; color: #1a1a18; margin: 0; padding: 0; }
-    .cover { padding: 60px 50px; border-bottom: 3px solid #1a1a18; margin-bottom: 30px; }
-    .cover h1 { font-size: 28pt; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
-    .cover h2 { font-size: 14pt; font-weight: 400; color: #6B6960; margin: 0 0 24px; }
-    .cover-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 10pt; }
-    .cover-meta .key { color: #6B6960; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.06em; }
-    .cover-meta .val { font-weight: 500; }
-    .stats { display: flex; gap: 16px; margin: 24px 0 0; }
-    .stat { background: #f2f0eb; padding: 12px 18px; border-radius: 6px; }
-    .stat .n { font-size: 22pt; font-weight: 800; line-height: 1; }
-    .stat .l { font-size: 8pt; color: #6B6960; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
-    .stat.red .n { color: #C0392B; }
-    .stat.amber .n { color: #B45309; }
-    .stat.green .n { color: #4A8024; }
-    h3.loc { font-size: 13pt; font-weight: 700; padding: 8px 50px; background: #1a1a18; color: #fff; margin: 0; page-break-before: auto; }
-    .snag { display: flex; gap: 16px; padding: 14px 50px; border-bottom: 1px solid #eee; page-break-inside: avoid; }
-    .snag-num { font-family: monospace; font-size: 10pt; color: #A09D98; min-width: 40px; padding-top: 2px; }
-    .snag-body { flex: 1; }
-    .snag-desc { font-size: 11pt; font-weight: 600; margin-bottom: 4px; }
-    .snag-meta { font-size: 9pt; color: #6B6960; margin-bottom: 8px; }
-    .snag-status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-    .snag-notes { font-size: 10pt; color: #444; margin-top: 8px; padding: 8px; background: #f9f9f8; border-radius: 4px; }
-    .snag-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-    .snag-photos img { width: 180px; height: 130px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
-    .footer { text-align: center; font-size: 8pt; color: #A09D98; padding: 30px; border-top: 1px solid #eee; margin-top: 20px; }
-    @media print { .cover { padding: 40px; } h3.loc { padding: 8px 40px; } .snag { padding: 14px 40px; } }
-  </style></head><body>`;
-
   const open = snags.filter(s => s.status==='open').length;
   const inProg = snags.filter(s => s.status==='in-progress').length;
   const done = snags.filter(s => s.status==='complete').length;
 
-  html += `<div class="cover">
-    <h1>Snagging Report</h1>
-    <h2>${p.name}</h2>
-    <div class="cover-meta">
-      <div><div class="key">Reference</div><div class="val">${p.ref || '—'}</div></div>
-      <div><div class="key">Date</div><div class="val">${p.date || new Date().toLocaleDateString('en-GB')}</div></div>
-      <div><div class="key">Contractor</div><div class="val">${p.contractor || '—'}</div></div>
-      <div><div class="key">Client</div><div class="val">${p.client || '—'}</div></div>
-      ${p.author ? `<div><div class="key">Prepared by</div><div class="val">${p.author}</div></div>` : ''}
-      ${p.company ? `<div><div class="key">Company</div><div class="val">${p.company}</div></div>` : ''}
+  // All styles inline so report renders correctly in iframes and PDFShift
+  const S = {
+    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:11pt;color:#1a1a18;margin:0;padding:0;',
+    cover: 'padding:50px;border-bottom:3px solid #1a1a18;margin-bottom:30px;',
+    h1: 'font-size:28pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;',
+    h2: 'font-size:14pt;font-weight:400;color:#6B6960;margin:0 0 20px;',
+    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:10pt;',
+    metaKey: 'color:#6B6960;text-transform:uppercase;font-size:8pt;letter-spacing:0.06em;',
+    metaVal: 'font-weight:500;font-size:10pt;',
+    stats: 'display:flex;gap:12px;margin:20px 0 0;',
+    stat: 'background:#f2f0eb;padding:12px 16px;border-radius:6px;',
+    statN: 'font-size:20pt;font-weight:800;line-height:1;',
+    statL: 'font-size:8pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;',
+    locH: 'font-size:13pt;font-weight:700;padding:8px 50px;background:#1a1a18;color:#fff;margin:16px 0 0;',
+    snag: 'display:flex;gap:16px;padding:14px 50px;border-bottom:1px solid #eee;',
+    snagNum: 'font-family:monospace;font-size:10pt;color:#A09D98;min-width:36px;padding-top:2px;flex-shrink:0;',
+    snagBody: 'flex:1;',
+    snagDesc: 'font-size:11pt;font-weight:600;margin-bottom:4px;',
+    snagMeta: 'font-size:9pt;color:#6B6960;margin-bottom:6px;',
+    snagStatus: 'display:inline-block;padding:2px 8px;border-radius:10px;font-size:8pt;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;',
+    snagNotes: 'font-size:10pt;color:#444;margin-top:8px;padding:8px;background:#f9f9f8;border-radius:4px;',
+    photos: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;',
+    photo: 'width:180px;height:130px;object-fit:cover;border-radius:4px;border:1px solid #ddd;',
+    footer: 'text-align:center;font-size:8pt;color:#A09D98;padding:30px;border-top:1px solid #eee;margin-top:20px;',
+  };
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    @media print { body { margin:0; } }
+    * { box-sizing: border-box; }
+  </style></head><body style="${S.body}">`;
+
+  html += `<div style="${S.cover}">
+    <div style="${S.h1}">Snagging Report</div>
+    <div style="${S.h2}">${p.name}</div>
+    <div style="${S.meta}">
+      <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref || '—'}</div></div>
+      <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${p.date || new Date().toLocaleDateString('en-GB')}</div></div>
+      <div><div style="${S.metaKey}">Contractor</div><div style="${S.metaVal}">${p.contractor || '—'}</div></div>
+      <div><div style="${S.metaKey}">Client</div><div style="${S.metaVal}">${p.client || '—'}</div></div>
+      ${p.author ? `<div><div style="${S.metaKey}">Prepared by</div><div style="${S.metaVal}">${p.author}</div></div>` : ''}
+      ${p.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${p.company}</div></div>` : ''}
     </div>
-    <div class="stats">
-      <div class="stat red"><div class="n">${open}</div><div class="l">Open</div></div>
-      <div class="stat amber"><div class="n">${inProg}</div><div class="l">In progress</div></div>
-      <div class="stat green"><div class="n">${done}</div><div class="l">Complete</div></div>
-      <div class="stat"><div class="n">${snags.length}</div><div class="l">Total items</div></div>
+    <div style="${S.stats}">
+      <div style="${S.stat}"><div style="${S.statN};color:#C0392B;">${open}</div><div style="${S.statL}">Open</div></div>
+      <div style="${S.stat}"><div style="${S.statN};color:#B45309;">${inProg}</div><div style="${S.statL}">In progress</div></div>
+      <div style="${S.stat}"><div style="${S.statN};color:#4A8024;">${done}</div><div style="${S.statL}">Complete</div></div>
+      <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total</div></div>
     </div>
   </div>`;
 
   Object.entries(byLoc).forEach(([loc, items]) => {
-    html += `<h3 class="loc">${loc}</h3>`;
+    html += `<div style="${S.locH}">${loc}</div>`;
     items.forEach(s => {
       const sc = statusColour[s.status] || '#888';
       const sl = statusLabel[s.status] || s.status;
-      const photos = (s.photos || []).map(ph => `<img src="${ph}" />`).join('');
-      html += `<div class="snag">
-        <div class="snag-num">#${s.ref || s.id.slice(-4)}</div>
-        <div class="snag-body">
-          <div class="snag-desc">${s.description || ''}</div>
-          <div class="snag-meta">${[s.dateIdentified, s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
-          <span class="snag-status" style="background:${sc}20;color:${sc};">${sl}</span>
-          ${s.notes ? `<div class="snag-notes">${s.notes}</div>` : ''}
-          ${photos ? `<div class="snag-photos">${photos}</div>` : ''}
+      const photos = (s.photos || []).map(ph => `<img style="${S.photo}" src="${ph}" />`).join('');
+      html += `<div style="${S.snag}">
+        <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
+        <div style="${S.snagBody}">
+          <div style="${S.snagDesc}">${s.description || ''}</div>
+          <div style="${S.snagMeta}">${[s.dateIdentified, s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
+          <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
+          ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
+          ${photos ? `<div style="${S.photos}">${photos}</div>` : ''}
         </div>
       </div>`;
     });
   });
 
-  html += `<div class="footer">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
+  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
 
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
