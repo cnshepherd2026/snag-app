@@ -948,9 +948,13 @@ function removePhoto(i) {
   renderModalPhotos();
 }
 
+let savingSnag = false;
 function saveSnagFromModal() {
+  if (savingSnag) return;
+  savingSnag = true;
+  setTimeout(() => { savingSnag = false; }, 1000);
   const desc = document.getElementById('ns-desc').value.trim();
-  if (!desc) { toast('Description required'); return; }
+  if (!desc) { savingSnag = false; toast('Description required'); return; }
   const snags = getSnags(currentProjectId);
   if (editingSnagId) {
     const idx = snags.findIndex(s => s.id === editingSnagId);
@@ -1114,17 +1118,6 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
   if (modal) {
     modal.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
     modal.addEventListener('click', e => e.stopPropagation());
-  }
-});
-
-// iOS: make save button respond to touchend for snappier feel
-document.addEventListener('DOMContentLoaded', () => {
-  const saveBtn = document.getElementById('saveSnagBtn');
-  if (saveBtn) {
-    saveBtn.addEventListener('touchend', e => {
-      e.preventDefault();
-      saveSnagFromModal();
-    });
   }
 });
 
