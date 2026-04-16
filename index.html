@@ -1185,25 +1185,16 @@ function closeReport() {
 }
 
 function exportHtml() {
-  const blob = new Blob([currentReportHtml], { type: 'text/html' });
-  const fname = currentReportName + '.html';
-  const file = new File([blob], fname, { type: 'text/html' });
-
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: 'Snagging Report', files: [file] })
-      .catch(err => { if (err.name !== 'AbortError') htmlDownloadFallback(blob, fname); });
-    return;
-  }
-  htmlDownloadFallback(blob, fname);
-}
-
-function htmlDownloadFallback(blob, fname) {
-  const url = URL.createObjectURL(blob);
+  // Open report in a new tab as a data URI — works in Safari on iOS
+  const encoded = 'data:text/html;charset=utf-8,' + encodeURIComponent(currentReportHtml);
   const a = document.createElement('a');
-  a.href = url; a.download = fname;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-  toast('HTML saved — open in Safari then Print → Save as PDF');
+  a.href = encoded;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('Tap Share → Print → Save as PDF');
 }
 
 async function shareReport() {
