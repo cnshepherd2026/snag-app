@@ -1140,17 +1140,17 @@ function generatePDF() {
   // All styles inline so report renders correctly in iframes and PDFShift
   const S = {
     body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:11pt;color:#1a1a18;margin:0;padding:0;',
-    cover: 'padding:50px;border-bottom:3px solid #1a1a18;margin-bottom:30px;',
-    h1: 'font-size:28pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 6px;',
-    h2: 'font-size:14pt;font-weight:400;color:#6B6960;margin:0 0 20px;',
-    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:10pt;',
+    cover: 'padding:30px 50px 24px;border-bottom:2px solid #1a1a18;margin-bottom:20px;',
+    h1: 'font-size:22pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 4px;',
+    h2: 'font-size:12pt;font-weight:400;color:#6B6960;margin:0 0 14px;',
+    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;font-size:10pt;',
     metaKey: 'color:#6B6960;text-transform:uppercase;font-size:8pt;letter-spacing:0.06em;',
     metaVal: 'font-weight:500;font-size:10pt;',
-    stats: 'display:flex;gap:12px;margin:20px 0 0;',
-    stat: 'background:#f2f0eb;padding:12px 16px;border-radius:6px;',
-    statN: 'font-size:20pt;font-weight:800;line-height:1;',
+    stats: 'display:flex;gap:10px;margin:14px 0 0;',
+    stat: 'background:#f2f0eb;padding:8px 14px;border-radius:6px;',
+    statN: 'font-size:16pt;font-weight:800;line-height:1;',
     statL: 'font-size:8pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;',
-    locH: 'font-size:13pt;font-weight:700;padding:8px 50px;background:#1a1a18;color:#fff;margin:16px 0 0;',
+    locH: 'font-size:10pt;font-weight:700;padding:5px 50px;background:#1a1a18;color:#fff;margin:12px 0 0;letter-spacing:0.04em;text-transform:uppercase;',
     snag: 'display:flex;gap:16px;padding:14px 50px;border-bottom:1px solid #eee;',
     snagNum: 'font-family:monospace;font-size:10pt;color:#A09D98;min-width:36px;padding-top:2px;flex-shrink:0;',
     snagBody: 'flex:1;',
@@ -1214,7 +1214,7 @@ function generatePDF() {
     });
   });
 
-  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
+  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</div></body></html>`;
 
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
