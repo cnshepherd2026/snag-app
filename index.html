@@ -580,6 +580,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-snag')">Cancel</button>
+      <button class="btn-danger" id="modalDeleteBtn" onclick="deleteSnagFromModal()" style="display:none;">Delete</button>
       <button class="btn-primary" id="saveSnagBtn" onclick="saveSnagFromModal()">Save item</button>
     </div>
   </div>
@@ -865,6 +866,7 @@ function snagItemHtml(s) {
         ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
       </div>
     </div>
+    <button onclick="deleteSnagById('${s.id}', event)" style="flex-shrink:0; background:none; border:none; color:var(--text3); font-size:20px; padding:8px 4px 8px 12px; cursor:pointer; line-height:1;" title="Delete item">×</button>
   </div>`;
 }
 
@@ -897,6 +899,7 @@ function showNewSnagModal() {
   modalStatus = 'open';
   modalPriority = 'medium';
   document.getElementById('snagModalTitle').textContent = 'New snag item';
+  document.getElementById('modalDeleteBtn').style.display = 'none';
   refreshStatusBtns();
   refreshPriorityBtns();
   renderModalPhotos();
@@ -917,6 +920,7 @@ function openSnag(id) {
   modalStatus = s.status || 'open';
   modalPriority = s.priority || 'medium';
   document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
+  document.getElementById('modalDeleteBtn').style.display = 'block';
   refreshStatusBtns();
   refreshPriorityBtns();
   renderModalPhotos();
@@ -1031,6 +1035,26 @@ function deleteCurrentSnag() {
   toast('Item deleted');
 }
 
+function deleteSnagFromModal() {
+  if (!editingSnagId) return;
+  if (!confirm('Delete this item?')) return;
+  const snags = getSnags(currentProjectId).filter(s => s.id !== editingSnagId);
+  saveSnags(currentProjectId, snags);
+  editingSnagId = null;
+  closeModal('modal-snag');
+  renderDetail(currentProjectId, false);
+  toast('Item deleted');
+}
+
+function deleteSnagById(id, e) {
+  e.stopPropagation();
+  if (!confirm('Delete this item?')) return;
+  const snags = getSnags(currentProjectId).filter(s => s.id !== id);
+  saveSnags(currentProjectId, snags);
+  renderDetail(currentProjectId, false);
+  toast('Item deleted');
+}
+
 // ── EXPORT ──
 function showExportView() {
   setTopbarActions('export');
@@ -1139,7 +1163,7 @@ function generatePDF() {
 
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
-  currentReportName = (p.name || 'snag').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report.html';
+  currentReportName = (p.name || 'snag').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report';
   const frame = document.getElementById('reportFrame');
   frame.srcdoc = html;
   const overlay = document.getElementById('report-overlay');
@@ -1153,33 +1177,54 @@ function closeReport() {
   document.getElementById('report-overlay').style.display = 'none';
 }
 
-function shareReport() {
-  const blob = new Blob([currentReportHtml], { type: 'text/html' });
-  const file = new File([blob], currentReportName, { type: 'text/html' });
+async function shareReport() {
+  const btn = document.querySelector('#report-overlay button:last-child');
+  const origText = btn.textContent;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
 
-  // Try native share with file (works on iOS 15+)
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ title: 'Snagging Report', files: [file] })
-      .then(() => toast('Report shared'))
-      .catch(() => downloadReport(blob));
-    return;
-  }
-  // Fallback: print the iframe
-  const frame = document.getElementById('reportFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
-    return;
-  }
-  downloadReport(blob);
-}
+  try {
+    const res = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html: currentReportHtml,
+        filename: currentReportName + '.pdf'
+      })
+    });
 
-function downloadReport(blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = currentReportName; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  toast('Report downloaded');
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+
+    const pdfBlob = await res.blob();
+    const pdfFile = new File([pdfBlob], currentReportName + '.pdf', { type: 'application/pdf' });
+
+    // Try native iOS share sheet with PDF file
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      await navigator.share({ title: 'Snagging Report', files: [pdfFile] });
+      toast('PDF shared');
+    } else {
+      // Desktop: trigger download
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = currentReportName + '.pdf'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('PDF downloaded');
+    }
+  } catch (err) {
+    console.error('PDF error:', err);
+    // Fallback: print the iframe
+    const frame = document.getElementById('reportFrame');
+    if (frame && frame.contentWindow) {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+      toast('Use Print → Save as PDF');
+    } else {
+      toast('PDF export failed — try print instead');
+    }
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
 }
 
 function download(content, filename, type) {
