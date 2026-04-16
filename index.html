@@ -517,7 +517,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-project')">Cancel</button>
-      <button class="btn-primary" onclick="saveProject()">Create project</button>
+      <button class="btn-primary" id="projectSaveBtn" onclick="saveProject()">Create project</button>
     </div>
   </div>
 </div>
@@ -716,6 +716,9 @@ function setTopbarActions(ctx) {
     el.innerHTML = '';
   } else if (ctx === 'detail') {
     el.innerHTML = `
+      <button class="icon-btn" onclick="editProject()" title="Edit project">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
       <button class="icon-btn" onclick="showExportView()" title="Export">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>`;
@@ -781,6 +784,25 @@ function showNewProjectModal() {
   document.getElementById('np-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('np-status').value = 'open';
   document.getElementById('projectModalTitle').textContent = 'New project';
+  document.getElementById('projectSaveBtn').textContent = 'Create project';
+  openModal('modal-project');
+}
+
+function editProject() {
+  const projects = getProjects();
+  const p = projects.find(x => x.id === currentProjectId);
+  if (!p) return;
+  editingProjectId = currentProjectId;
+  document.getElementById('np-name').value = p.name || '';
+  document.getElementById('np-ref').value = p.ref || '';
+  document.getElementById('np-contractor').value = p.contractor || '';
+  document.getElementById('np-client').value = p.client || '';
+  document.getElementById('np-author').value = p.author || '';
+  document.getElementById('np-company').value = p.company || '';
+  document.getElementById('np-date').value = p.date || '';
+  document.getElementById('np-status').value = p.status || 'open';
+  document.getElementById('projectModalTitle').textContent = 'Edit project';
+  document.getElementById('projectSaveBtn').textContent = 'Save changes';
   openModal('modal-project');
 }
 
@@ -798,6 +820,11 @@ function saveProject() {
   }
   saveProjects(projects);
   closeModal('modal-project');
+  document.getElementById('projectSaveBtn').textContent = 'Create project';
+  if (editingProjectId) {
+    renderDetail(currentProjectId, false);
+  }
+  editingProjectId = null;
   renderProjects();
   toast('Project saved');
 }
