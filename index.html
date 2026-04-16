@@ -1166,13 +1166,19 @@ function generatePDF() {
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     * { box-sizing: border-box; }
-    body { background: #fff !important; }
+    body { background: #fff; font-size: 11pt; }
     img { max-width: 100%; height: auto; }
     @media print {
-      body { margin: 0; background: #fff !important; }
-      @page { margin: 12mm; size: A4 portrait; }
+      body { margin: 0; background: #fff; }
       img { max-width: 100% !important; height: auto !important; }
     }
+    @page {
+      size: A4 portrait;
+      margin: 15mm;
+      margin-top: 12mm;
+      margin-bottom: 12mm;
+    }
+    @page :first { margin-top: 12mm; }
   </style></head><body style="${S.body}">`;
 
   html += `<div style="${S.cover}">
