@@ -1225,7 +1225,9 @@ function generatePDF() {
     });
   });
 
-  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</div></body></html>`;
+  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</div>
+  <script>window.onload = function(){ window.print(); };<\/script>
+  </body></html>`;
 
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
@@ -1255,42 +1257,17 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Remove any existing print frame
-  const existing = document.getElementById('snag-print-frame');
-  if (existing) existing.remove();
+  // Create a blob URL from the report HTML and navigate to it
+  // On iOS Safari PWA this opens in the same window but as a clean document
+  // User can then tap Share -> Print to get the native print dialog
+  const blob = new Blob([currentReportHtml], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
 
-  // Create a sandboxed iframe with allow-scripts so it can call print
-  const frame = document.createElement('iframe');
-  frame.id = 'snag-print-frame';
-  frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-modals');
-  frame.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:none;';
-  document.body.appendChild(frame);
+  // Store the URL so we can revoke it later
+  window._reportBlobUrl = url;
 
-  // Write the exact same HTML as the export into the iframe
-  // Append an auto-print script so it prints as soon as it loads
-  const printHtml = currentReportHtml.replace('</body>', `
-    <script>
-      window.onload = function() {
-        window.print();
-        setTimeout(function() { window.parent.postMessage('printdone','*'); }, 1000);
-      };
-    <\/script>
-  </body>`);
-
-  frame.contentDocument.open();
-  frame.contentDocument.write(printHtml);
-  frame.contentDocument.close();
-
-  // Listen for print done then clean up
-  window.addEventListener('message', function handler(e) {
-    if (e.data === 'printdone') {
-      window.removeEventListener('message', handler);
-      setTimeout(() => {
-        const f = document.getElementById('snag-print-frame');
-        if (f) f.remove();
-      }, 1000);
-    }
-  });
+  // Navigate to the blob - this opens the clean HTML in Safari
+  window.location.href = url;
 }
 
 
