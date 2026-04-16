@@ -1202,8 +1202,8 @@ function generatePDF() {
       const sl = statusLabel[s.status] || s.status;
       // Photos on the right side of the text, max 2 per row, smaller size
       const photoHtml = (s.photos && s.photos.length)
-        ? `<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:180px;margin-left:16px;">
-            ${s.photos.map(ph => `<img style="width:180px;max-width:180px;height:auto;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
+        ? `<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:30%;margin-left:16px;">
+            ${s.photos.map(ph => `<img style="width:100%;height:auto;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
            </div>`
         : '';
       html += `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
@@ -1249,56 +1249,38 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Create a hidden print iframe, write the clean report into it,
-  // then use @media print to show only that iframe full-screen
-  let pf = document.getElementById('snag-print-iframe');
-  if (!pf) {
-    pf = document.createElement('iframe');
-    pf.id = 'snag-print-iframe';
-    pf.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;';
-    document.body.appendChild(pf);
-  }
+  // Parse the report HTML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(currentReportHtml, 'text/html');
+  const reportBody = doc.body.innerHTML;
+  const reportStyle = (doc.head.querySelector('style') || {textContent:''}).textContent;
 
-  // Inject @media print rule to show iframe full screen when printing
-  let ps = document.getElementById('snag-print-style');
-  if (!ps) {
-    ps = document.createElement('style');
-    ps.id = 'snag-print-style';
-    document.head.appendChild(ps);
-  }
-  // Write report into iframe first so we can measure its height
-  pf.contentDocument.open();
-  pf.contentDocument.write(currentReportHtml);
-  pf.contentDocument.close();
+  // Save original body and html state
+  const origBody = document.body.innerHTML;
+  const origBg = document.documentElement.style.background;
+  const origBodyBg = document.body.style.background;
 
-  pf.onload = () => {
-    // Expand iframe to full content height so all pages print
-    const h = pf.contentDocument.body.scrollHeight;
-    pf.style.width = '210mm';
-    pf.style.height = h + 'px';
+  // Replace body with report content
+  document.documentElement.style.background = '#fff';
+  document.body.style.background = '#fff';
+  document.body.innerHTML = '<style>' + reportStyle + `
+    * { box-sizing: border-box; }
+    body { margin:0; padding:0; background:#fff; font-family:Helvetica Neue,Arial,sans-serif; }
+    img { max-width:100%; height:auto; }
+    @page { margin:12mm; size:A4 portrait; }
+  </style>` + reportBody;
 
-    ps.textContent = `@media print {
-      body > *:not(#snag-print-iframe) { display: none !important; }
-      #snag-print-iframe {
-        position: fixed !important;
-        top: 0 !important; left: 0 !important;
-        width: 210mm !important;
-        height: ${h}px !important;
-        visibility: visible !important;
-      }
-    }`;
+  // Print
+  window.print();
 
-    // Small delay to ensure layout is complete
-    setTimeout(() => {
-      window.print();
-      // Reset iframe size after printing
-      setTimeout(() => {
-        pf.style.width = '0';
-        pf.style.height = '0';
-      }, 1000);
-    }, 300);
-    pf.onload = null;
-  };
+  // Restore app after print dialog closes
+  document.body.innerHTML = origBody;
+  document.documentElement.style.background = origBg;
+  document.body.style.background = origBodyBg;
+
+  // Re-run init to restore event listeners
+  renderProjects();
+  setTopbarActions('projects');
 }
 
 
