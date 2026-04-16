@@ -590,11 +590,11 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 <!-- REPORT VIEWER -->
 <div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:var(--bg); flex-direction:column;">
   <div style="display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:52px; background:var(--text); flex-shrink:0;">
-    <button onclick="closeReport()" style="background:none; border:none; color:rgba(255,255,255,0.7); font-size:15px; cursor:pointer; font-family:var(--body); padding:4px 0;">‹ Back</button>
+    <button onclick="closeReport()" style="background:none; border:none; color:rgba(255,255,255,0.7); font-size:17px; cursor:pointer; font-family:var(--body); padding:4px 0;">‹ Back</button>
     <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.5);">Report preview</span>
-    <button onclick="shareReport()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; height:34px; padding:0 14px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;">Print / Save PDF</button>
+    <button onclick="shareReport()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; height:34px; padding:0 14px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;">Share / Email</button>
   </div>
-  <iframe id="reportFrame" style="flex:1; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts"></iframe>
+  <iframe id="reportFrame" style="flex:1; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
 </div>
 
 <!-- MODAL: PHOTO ANNOTATOR -->
@@ -1178,11 +1178,47 @@ function closeReport() {
   document.getElementById('report-overlay').style.display = 'none';
 }
 
-function shareReport() {
-  const frame = document.getElementById('reportFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.focus();
-    frame.contentWindow.print();
+async function shareReport() {
+  const btn = document.querySelector('#report-overlay button:last-child');
+  const orig = btn.textContent;
+  btn.textContent = 'Generating PDF…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/generate-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        html: currentReportHtml,
+        filename: currentReportName + '.pdf'
+      })
+    });
+
+    if (!res.ok) throw new Error('API error ' + res.status);
+
+    const pdfBlob = await res.blob();
+    const fname = currentReportName + '.pdf';
+    const pdfFile = new File([pdfBlob], fname, { type: 'application/pdf' });
+
+    // iOS — native share sheet with real PDF (Mail, AirDrop, Files etc.)
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      await navigator.share({ title: 'Snagging Report', files: [pdfFile] });
+      toast('PDF shared');
+    } else {
+      // Desktop fallback — download
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('PDF downloaded');
+    }
+  } catch (err) {
+    console.error(err);
+    toast('PDF failed — check connection and try again');
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
   }
 }
 
