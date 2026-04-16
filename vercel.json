@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/generate-pdf.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/sw.js",
