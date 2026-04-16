@@ -1019,7 +1019,11 @@ function saveSnagFromModal() {
       snags[idx] = { ...snags[idx], description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], updated: new Date().toISOString() };
     }
   } else {
-    const ref = (snags.length + 1).toString().padStart(3, '0');
+    const maxRef = snags.reduce((max, s) => {
+      const n = parseInt(s.ref || '0', 10);
+      return n > max ? n : max;
+    }, 0);
+    const ref = (maxRef + 1).toString().padStart(3, '0');
     snags.push({ id: 's_' + Date.now(), ref, description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
   }
   const saved = saveSnags(currentProjectId, snags);
@@ -1149,29 +1153,27 @@ function generatePDF() {
   </div>`;
 
   Object.entries(byLoc).forEach(([loc, items]) => {
-    items.forEach((s, idx) => {
+    // Location heading — break-after:avoid keeps it glued to the first item below
+    html += `<div style="${S.locH};break-after:avoid;page-break-after:avoid;">${loc}</div>`;
+    items.forEach((s) => {
       const sc = statusColour[s.status] || '#888';
       const sl = statusLabel[s.status] || s.status;
-      const photos = (s.photos || []).map(ph => `<img style="${S.photo}" src="${ph}" />`).join('');
-      const snagHtml = `<div style="${S.snag}">
+      // Photos on the right side of the text, max 2 per row, smaller size
+      const photoHtml = (s.photos && s.photos.length)
+        ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-left:12px;">
+            ${s.photos.map(ph => `<img style="width:120px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
+           </div>`
+        : '';
+      html += `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
         <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
           <div style="${S.snagMeta}">${[s.dateIdentified, s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
           <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
           ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
-          ${photos ? `<div style="${S.photos}">${photos}</div>` : ''}
         </div>
+        ${photoHtml}
       </div>`;
-      if (idx === 0) {
-        // Wrap heading + first item together so they never split across pages
-        html += `<div style="page-break-inside:avoid;break-inside:avoid;">
-          <div style="${S.locH}">${loc}</div>
-          ${snagHtml}
-        </div>`;
-      } else {
-        html += snagHtml;
-      }
     });
   });
 
