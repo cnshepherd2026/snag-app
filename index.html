@@ -588,19 +588,13 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 </div>
 
 <!-- REPORT VIEWER -->
-<div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:var(--bg); flex-direction:column;">
-  <div style="display:flex; flex-direction:column; background:var(--text); flex-shrink:0;">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:52px;">
-      <button onclick="closeReport()" style="background:none; border:none; color:rgba(255,255,255,0.7); font-size:17px; cursor:pointer; font-family:var(--body); padding:4px 0;">‹ Back</button>
-      <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.5);">Report preview</span>
-      <div style="width:60px;"></div>
-    </div>
-    <div style="display:flex; gap:8px; padding:0 16px 12px;">
-      <button onclick="exportHtml()" style="flex:1; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:rgba(255,255,255,0.85); height:40px; border-radius:6px; font-family:var(--display); font-size:14px; font-weight:500; cursor:pointer;">Export HTML</button>
-      <button onclick="shareReport()" id="sharePdfBtn" style="flex:1; background:rgba(255,255,255,0.2); border:none; color:#fff; height:40px; border-radius:6px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer;">Share / Email PDF</button>
-    </div>
+<div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff;">
+  <!-- Floating toolbar - shown by default, hides on tap, shows again on tap -->
+  <div id="report-toolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:#1a1a18; padding:10px 16px; border-radius:50px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:500; transition:opacity 0.25s;">
+    <button onclick="closeReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--body); font-size:15px; cursor:pointer;">‹ Back</button>
+    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer;">Print / Save PDF</button>
   </div>
-  <iframe id="reportFrame" style="flex:1; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
+  <iframe id="reportFrame" style="position:absolute; inset:0; width:100%; height:100%; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
 </div>
 
 <!-- MODAL: PHOTO ANNOTATOR -->
@@ -1222,7 +1216,18 @@ function generatePDF() {
   const frame = document.getElementById('reportFrame');
   frame.srcdoc = html;
   const overlay = document.getElementById('report-overlay');
-  overlay.style.display = 'flex';
+  overlay.style.display = 'block';
+  // Toggle toolbar on tap
+  const toolbar = document.getElementById('report-toolbar');
+  toolbar.style.opacity = '1';
+  frame.onload = () => {
+    try {
+      frame.contentDocument.addEventListener('click', () => {
+        toolbar.style.opacity = toolbar.style.opacity === '0' ? '1' : '0';
+        toolbar.style.pointerEvents = toolbar.style.opacity === '0' ? 'none' : 'auto';
+      });
+    } catch(e) {}
+  };
 }
 
 let currentReportHtml = '';
@@ -1233,76 +1238,15 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Write report into a hidden iframe and print from it
-  const frame = document.createElement('iframe');
-  frame.id = 'print-frame';
-  frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999;background:#fff;';
-  document.body.appendChild(frame);
-
-  frame.contentDocument.open();
-  frame.contentDocument.write(currentReportHtml);
-  frame.contentDocument.close();
-
-  // Add a print button and close button into the frame
-  const closeBtn = frame.contentDocument.createElement('div');
-  closeBtn.style.cssText = 'position:fixed;top:0;left:0;right:0;display:flex;gap:10px;padding:10px 16px;background:#1a1a18;z-index:10000;';
-  closeBtn.innerHTML = '<button onclick="window.parent.closePrintFrame()" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:17px;cursor:pointer;font-family:sans-serif;padding:4px 8px 4px 0;">‹ Back</button><span style="flex:1;font-family:monospace;font-size:11px;color:rgba(255,255,255,0.4);align-self:center;letter-spacing:0.08em;text-transform:uppercase;">Print preview</span><button onclick="window.print()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;height:36px;padding:0 16px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;font-family:sans-serif;">Print / Save PDF</button>';
-  frame.contentDocument.body.insertBefore(closeBtn, frame.contentDocument.body.firstChild);
-
-  // Add top padding so content isn't hidden behind the bar
-  const padDiv = frame.contentDocument.createElement('div');
-  padDiv.style.height = '60px';
-  frame.contentDocument.body.insertBefore(padDiv, closeBtn.nextSibling);
-}
-
-function closePrintFrame() {
-  const f = document.getElementById('print-frame');
-  if (f) f.remove();
-}
-
-async function shareReport() {
-  const btn = document.getElementById('sharePdfBtn');
-  const orig = btn.textContent;
-  btn.textContent = 'Generating PDF…';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('/api/generate-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        html: currentReportHtml,
-        filename: currentReportName + '.pdf'
-      })
-    });
-
-    if (!res.ok) throw new Error('API error ' + res.status);
-
-    const pdfBlob = await res.blob();
-    const fname = currentReportName + '.pdf';
-    const pdfFile = new File([pdfBlob], fname, { type: 'application/pdf' });
-
-    // iOS — native share sheet with real PDF (Mail, AirDrop, Files etc.)
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      await navigator.share({ title: 'Snagging Report', files: [pdfFile] });
-      toast('PDF shared');
-    } else {
-      // Desktop fallback — download
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url; a.download = fname;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast('PDF downloaded');
-    }
-  } catch (err) {
-    console.error(err);
-    toast('PDF failed — check connection and try again');
-  } finally {
-    btn.textContent = orig;
-    btn.disabled = false;
+  // Print directly from the preview iframe
+  const frame = document.getElementById('reportFrame');
+  if (frame && frame.contentWindow) {
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
   }
 }
+
+
 
 function download(content, filename, type) {
   const a = document.createElement('a');
