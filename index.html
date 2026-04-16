@@ -1249,38 +1249,34 @@ function closeReport() {
 }
 
 function exportHtml() {
-  // Parse the report HTML
   const parser = new DOMParser();
   const doc = parser.parseFromString(currentReportHtml, 'text/html');
   const reportBody = doc.body.innerHTML;
   const reportStyle = (doc.head.querySelector('style') || {textContent:''}).textContent;
 
-  // Save original body and html state
   const origBody = document.body.innerHTML;
-  const origBg = document.documentElement.style.background;
-  const origBodyBg = document.body.style.background;
 
-  // Replace body with report content
-  document.documentElement.style.background = '#fff';
-  document.body.style.background = '#fff';
-  document.body.innerHTML = '<style>' + reportStyle + `
-    * { box-sizing: border-box; }
-    body { margin:0; padding:0; background:#fff; font-family:Helvetica Neue,Arial,sans-serif; }
-    img { max-width:100%; height:auto; }
+  document.body.innerHTML = `<style>
+    ${reportStyle}
+    * { box-sizing:border-box; }
+    html, body { margin:0; padding:0; background:#fff !important; font-family:Helvetica Neue,Arial,sans-serif; }
+    img { max-width:100% !important; height:auto !important; }
     @page { margin:12mm; size:A4 portrait; }
-  </style>` + reportBody;
+  </style>${reportBody}`;
 
-  // Print
-  window.print();
+  // Allow DOM to repaint before printing
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.print();
 
-  // Restore app after print dialog closes
-  document.body.innerHTML = origBody;
-  document.documentElement.style.background = origBg;
-  document.body.style.background = origBodyBg;
-
-  // Re-run init to restore event listeners
-  renderProjects();
-  setTopbarActions('projects');
+      // Restore after a delay (print dialog is async on iOS)
+      setTimeout(() => {
+        document.body.innerHTML = origBody;
+        renderProjects();
+        setTopbarActions('projects');
+      }, 500);
+    });
+  });
 }
 
 
