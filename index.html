@@ -585,6 +585,16 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   </div>
 </div>
 
+<!-- REPORT VIEWER -->
+<div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:var(--bg); flex-direction:column;">
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:52px; background:var(--text); flex-shrink:0;">
+    <button onclick="closeReport()" style="background:none; border:none; color:rgba(255,255,255,0.7); font-size:15px; cursor:pointer; font-family:var(--body); padding:4px 0;">‹ Back</button>
+    <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.5);">Report preview</span>
+    <button onclick="shareReport()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; height:34px; padding:0 14px; border-radius:6px; font-family:var(--display); font-size:13px; font-weight:600; cursor:pointer;">Share / Print</button>
+  </div>
+  <iframe id="reportFrame" style="flex:1; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts"></iframe>
+</div>
+
 <!-- MODAL: PHOTO ANNOTATOR -->
 <div class="modal-overlay" id="modal-annotate" style="align-items:center; background:rgba(0,0,0,0.92);">
   <div style="width:100%; max-width:700px; display:flex; flex-direction:column; height:100dvh; max-height:100dvh;">
@@ -1127,53 +1137,49 @@ function generatePDF() {
 
   html += `<div class="footer">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})} · Snag — Site Inspection App</div></body></html>`;
 
-  // Generate as blob and share via native share sheet (iOS) or download (desktop)
-  const blob = new Blob([html], { type: 'text/html' });
-  const fileName = (p.name || 'snag').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report.html';
-
-  // iOS Safari PWA: use Web Share API with file
-  if (navigator.share && navigator.canShare) {
-    const file = new File([blob], fileName, { type: 'text/html' });
-    if (navigator.canShare({ files: [file] })) {
-      navigator.share({
-        title: 'Snagging Report — ' + p.name,
-        files: [file]
-      }).then(() => toast('Report shared')).catch(() => fallbackExport(blob, fileName, html));
-      return;
-    }
-  }
-  fallbackExport(blob, fileName, html);
+  // Show report in in-app viewer — never leave the PWA
+  currentReportHtml = html;
+  currentReportName = (p.name || 'snag').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report.html';
+  const frame = document.getElementById('reportFrame');
+  frame.srcdoc = html;
+  const overlay = document.getElementById('report-overlay');
+  overlay.style.display = 'flex';
 }
 
-function fallbackExport(blob, fileName, html) {
-  // Try Web Share without file (just opens share sheet on iOS)
-  if (navigator.share) {
-    // Create object URL and share as link
-    const url = URL.createObjectURL(blob);
-    // On iOS PWA, open in same window so user can print/share from Safari
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-    toast('Report downloading — open to print or share');
+let currentReportHtml = '';
+let currentReportName = '';
+
+function closeReport() {
+  document.getElementById('report-overlay').style.display = 'none';
+}
+
+function shareReport() {
+  const blob = new Blob([currentReportHtml], { type: 'text/html' });
+  const file = new File([blob], currentReportName, { type: 'text/html' });
+
+  // Try native share with file (works on iOS 15+)
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ title: 'Snagging Report', files: [file] })
+      .then(() => toast('Report shared'))
+      .catch(() => downloadReport(blob));
     return;
   }
-  // Desktop fallback — open in new tab
-  const win = window.open('', '_blank');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => { win.focus(); win.print(); }, 600);
-    toast('Report opened — use Print > Save as PDF');
-  } else {
-    // Last resort — download as file
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fileName; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
-    toast('Report downloaded');
+  // Fallback: print the iframe
+  const frame = document.getElementById('reportFrame');
+  if (frame && frame.contentWindow) {
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+    return;
   }
+  downloadReport(blob);
+}
+
+function downloadReport(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = currentReportName; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  toast('Report downloaded');
 }
 
 function download(content, filename, type) {
