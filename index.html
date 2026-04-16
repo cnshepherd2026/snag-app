@@ -742,7 +742,7 @@ function renderProjects() {
         <span><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>${snags.length} items</span>
         ${open ? `<span style="color:var(--red)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${open} open</span>` : ''}
         ${done ? `<span style="color:var(--accent-mid)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${done} done</span>` : ''}
-        ${p.date ? `<span>${p.date}</span>` : ''}
+        ${p.date ? `<span>${fmtUKDate(p.date)}</span>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -869,7 +869,7 @@ function snagItemHtml(s) {
         <span class="snag-ref">#${s.ref || s.id.slice(-4)}</span>
         <span class="snag-status ${statusClass}">${statusLabel}</span>
         ${s.trade ? `<span style="font-size:11px;color:var(--text3);">${s.trade}</span>` : ''}
-        ${s.dateIdentified ? `<span style="font-size:11px;color:var(--text3);">${s.dateIdentified}</span>` : ''}
+        ${s.dateIdentified ? `<span style="font-size:11px;color:var(--text3);">${fmtUKDate(s.dateIdentified)}</span>` : ''}
         ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
       </div>
     </div>
@@ -1083,6 +1083,14 @@ function exportCSV() {
   toast('CSV downloaded');
 }
 
+function fmtUKDate(dateStr) {
+  if (!dateStr) return '';
+  // dateStr is yyyy-mm-dd from input[type=date]
+  const parts = dateStr.split('-');
+  if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+  return dateStr;
+}
+
 function generatePDF() {
   const p = getProjects().find(x => x.id === currentProjectId);
   const snags = getSnags(currentProjectId);
@@ -1138,7 +1146,7 @@ function generatePDF() {
     <div style="${S.h2}">${p.name}</div>
     <div style="${S.meta}">
       <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref || '—'}</div></div>
-      <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${p.date || new Date().toLocaleDateString('en-GB')}</div></div>
+      <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB')}</div></div>
       <div><div style="${S.metaKey}">Contractor</div><div style="${S.metaVal}">${p.contractor || '—'}</div></div>
       <div><div style="${S.metaKey}">Client</div><div style="${S.metaVal}">${p.client || '—'}</div></div>
       ${p.author ? `<div><div style="${S.metaKey}">Prepared by</div><div style="${S.metaVal}">${p.author}</div></div>` : ''}
@@ -1160,15 +1168,15 @@ function generatePDF() {
       const sl = statusLabel[s.status] || s.status;
       // Photos on the right side of the text, max 2 per row, smaller size
       const photoHtml = (s.photos && s.photos.length)
-        ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-left:12px;">
-            ${s.photos.map(ph => `<img style="width:120px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
+        ? `<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;width:160px;margin-left:16px;">
+            ${s.photos.map(ph => `<img style="width:160px;height:120px;object-fit:cover;border-radius:4px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
            </div>`
         : '';
       html += `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
         <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
-          <div style="${S.snagMeta}">${[s.dateIdentified, s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
+          <div style="${S.snagMeta}">${[s.dateIdentified ? fmtUKDate(s.dateIdentified) : '', s.trade, s.priority ? 'Priority: ' + s.priority : ''].filter(Boolean).join(' · ')}</div>
           <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
           ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
         </div>
