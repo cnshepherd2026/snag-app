@@ -1,8 +1,24 @@
 {
-  "name": "snag-app",
-  "version": "1.0.0",
-  "dependencies": {
-    "@sparticuz/chromium": "^123.0.1",
-    "puppeteer-core": "^22.6.5"
-  }
+  "version": 2,
+  "functions": {
+    "api/generate-pdf.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" }
+      ]
+    }
+  ]
 }
