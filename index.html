@@ -39,7 +39,7 @@
 
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 17px; }
+html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 19px; }
 
 /* ── APP SHELL ── */
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
@@ -60,7 +60,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .topbar-back.visible { display: block; }
 .app-logo { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em; color: #fff; }
 .app-logo span { color: var(--accent-mid); }
-.topbar-title { font-family: var(--display); font-size: 15px; font-weight: 500; color: rgba(255,255,255,0.9); display: none; }
+.topbar-title { font-family: var(--display); font-size: 17px; font-weight: 500; color: rgba(255,255,255,0.9); display: none; }
 .topbar-title.visible { display: block; }
 .topbar-actions { display: flex; gap: 8px; align-items: center; }
 .icon-btn {
@@ -83,7 +83,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   flex-shrink: 0;
 }
 .projects-header h2 { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
-.projects-header p { font-size: 15px; color: var(--text2); }
+.projects-header p { font-size: 17px; color: var(--text2); }
 
 .project-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -98,9 +98,9 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .project-card:hover { box-shadow: var(--shadow); border-color: var(--border-med); }
 .project-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.project-name { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.project-name { font-family: var(--display); font-weight: 600; font-size: 17px; }
 .project-ref { font-family: var(--mono); font-size: 12px; color: var(--text3); letter-spacing: 0.05em; }
-.project-meta { display: flex; gap: 12px; font-size: 14px; color: var(--text2); margin-top: 6px; }
+.project-meta { display: flex; gap: 12px; font-size: 16px; color: var(--text2); margin-top: 6px; }
 .project-meta span { display: flex; align-items: center; gap: 4px; }
 .project-meta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .status-pill {
@@ -125,7 +125,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   padding: 20px 20px 0; flex-shrink: 0;
 }
 .project-detail-header h2 { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 2px; }
-.project-detail-header p { font-size: 14px; color: var(--text2); font-family: var(--mono); }
+.project-detail-header p { font-size: 16px; color: var(--text2); font-family: var(--mono); }
 
 .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px 20px; flex-shrink: 0; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
@@ -157,7 +157,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .location-header:hover { background: var(--surface2); }
 .location-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
-.location-name { font-family: var(--display); font-size: 16px; font-weight: 600; }
+.location-name { font-family: var(--display); font-size: 18px; font-weight: 600; }
 .location-counts { display: flex; gap: 6px; align-items: center; }
 .count-badge {
   font-family: var(--mono); font-size: 12px; padding: 2px 7px;
@@ -192,7 +192,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .snag-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .snag-body { flex: 1; min-width: 0; }
-.snag-desc { font-size: 15px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
+.snag-desc { font-size: 17px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
 .snag-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .snag-ref { font-family: var(--mono); font-size: 12px; color: var(--text3); }
 .snag-status {
@@ -206,11 +206,11 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 
 /* ── SNAG DETAIL / ADD ── */
 .form-section { margin-bottom: 20px; }
-.form-label { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-label { font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
 .form-input, .form-textarea, .form-select {
   width: 100%; padding: 10px 12px;
   background: var(--surface); border: 1px solid var(--border-med);
-  border-radius: var(--radius); font-family: var(--body); font-size: 14px;
+  border-radius: var(--radius); font-family: var(--body); font-size: 16px;
   color: var(--text); outline: none; transition: border-color 0.15s;
   -webkit-appearance: none; appearance: none;
 }
@@ -233,7 +233,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .photo-thumb .del-photo {
   position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
   background: rgba(0,0,0,0.6); border-radius: 50%; border: none;
-  color: #fff; font-size: 14px; line-height: 1; cursor: pointer;
+  color: #fff; font-size: 16px; line-height: 1; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
 .add-photo-btn {
@@ -282,21 +282,21 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .btn-primary {
   flex: 1; height: 44px; background: var(--text); color: #fff;
   border: none; border-radius: var(--radius); font-family: var(--display);
-  font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em;
+  font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em;
   transition: opacity 0.15s;
 }
 .btn-primary:hover { opacity: 0.85; }
 .btn-secondary {
   height: 44px; padding: 0 18px; background: transparent;
   border: 1px solid var(--border-med); border-radius: var(--radius);
-  font-family: var(--body); font-size: 14px; color: var(--text2);
+  font-family: var(--body); font-size: 16px; color: var(--text2);
   cursor: pointer; transition: background 0.15s;
 }
 .btn-secondary:hover { background: var(--surface2); }
 .btn-danger {
   height: 44px; padding: 0 18px; background: transparent;
   border: 1px solid var(--red); border-radius: var(--radius);
-  font-family: var(--body); font-size: 14px; color: var(--red);
+  font-family: var(--body); font-size: 16px; color: var(--red);
   cursor: pointer; transition: background 0.15s;
 }
 .btn-danger:hover { background: var(--red-light); }
@@ -318,7 +318,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-handle { width: 36px; height: 4px; background: var(--border-med); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.modal-header h3 { font-family: var(--display); font-size: 17px; font-weight: 700; }
+.modal-header h3 { font-family: var(--display); font-size: 19px; font-weight: 700; }
 .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
 .modal-actions { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
 .modal-actions .btn-primary { flex: 1; }
@@ -327,7 +327,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 /* ── EMPTY STATE ── */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
 .empty-state svg { width: 40px; height: 40px; stroke: var(--text3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; opacity: 0.5; }
-.empty-state p { font-size: 15px; line-height: 1.5; }
+.empty-state p { font-size: 17px; line-height: 1.5; }
 
 /* ── EXPORT VIEW ── */
 .export-option {
@@ -343,8 +343,8 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   flex-shrink: 0;
 }
 .export-icon svg { width: 20px; height: 20px; stroke: var(--accent-mid); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.export-text h4 { font-family: var(--display); font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-.export-text p { font-size: 14px; color: var(--text2); }
+.export-text h4 { font-family: var(--display); font-size: 16px; font-weight: 600; margin-bottom: 2px; }
+.export-text p { font-size: 16px; color: var(--text2); }
 
 /* ── TOAST ── */
 .toast {
@@ -974,7 +974,7 @@ function handlePhotoUpload(e) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.30));
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.20));
         renderModalPhotos();
       };
       img.src = ev.target.result;
