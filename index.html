@@ -1530,6 +1530,36 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
+// ── MIGRATION: rescue items stored in old per-project format ──
+(function migrateOldData() {
+  const migrated = DB.get('snag_migrated_v2');
+  if (migrated) return;
+  const projects = getProjects();
+  projects.forEach(p => {
+    const oldItems = DB.get('snag_items_' + p.id);
+    if (oldItems && oldItems.length > 0) {
+      const reports = getReports(p.id);
+      // Only migrate if no reports exist yet for this project
+      if (reports.length === 0) {
+        const r = {
+          id: 'r_migrated_' + p.id,
+          type: 'Snagging Report',
+          date: p.date || new Date().toISOString().split('T')[0],
+          surveyor: p.author || '',
+          company: p.company || '',
+          conditions: '',
+          notes: 'Migrated from previous version',
+          created: new Date().toISOString()
+        };
+        saveReports(p.id, [r]);
+        saveReportSnags(r.id, oldItems);
+        console.log('Migrated', oldItems.length, 'items for project', p.name);
+      }
+    }
+  });
+  DB.set('snag_migrated_v2', true);
+})();
+
 // ── INIT ──
 renderProjects();
 setTopbarActions('projects');
