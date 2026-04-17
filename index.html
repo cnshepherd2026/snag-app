@@ -449,8 +449,17 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <div class="view" id="view-export">
     <div class="scroll">
       <div class="form-section">
-        <label class="form-label">Report title</label>
-        <input class="form-input" id="export-title" value="Snagging Report" placeholder="e.g. Site Visit Report" style="margin-bottom:16px;" />
+        <label class="form-label">Report type</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="export-type" onchange="updateExportTitle()">
+            <option value="Snagging Report">Snagging Report</option>
+            <option value="Site Visit Report">Site Visit Report</option>
+            <option value="Defect Report">Defect Report</option>
+            <option value="Inspection Report">Inspection Report</option>
+            <option value="Custom">Custom title…</option>
+          </select>
+        </div>
+        <input class="form-input" id="export-title" value="Snagging Report" placeholder="Enter report title" style="margin-top:8px; display:none;" />
       </div>
       <div class="form-section">
         <div class="export-option" onclick="generatePDF()">
@@ -846,9 +855,11 @@ function renderDetail(pid, switchView) {
     <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total</div></div>
   `;
 
-  // Populate location suggestions
-  const locations = [...new Set(snags.map(s => s.location).filter(Boolean))];
-  document.getElementById('locationSuggestions').innerHTML = locations.map(l => `<option value="${l}">`).join('');
+  // Populate location suggestions - combine project locations with saved locations
+  const projectLocs = snags.map(s => s.location).filter(Boolean);
+  const savedLocs = DB.get('snag_locations_' + pid) || [];
+  const allLocs = [...new Set([...savedLocs, ...projectLocs])].sort();
+  document.getElementById('locationSuggestions').innerHTML = allLocs.map(l => `<option value="${l}">`).join('');
 
   if (switchView !== false) showView('view-detail', p.name);
 
@@ -1006,13 +1017,13 @@ function handlePhotoUpload(e) {
       const img = new Image();
       img.onload = () => {
         // Resize to max 800px wide at 30% quality to keep storage small
-        const MAX = 800;
+        const MAX = 600;
         let w = img.width, h = img.height;
         if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.20));
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.12));
         renderModalPhotos();
       };
       img.src = ev.target.result;
@@ -1041,7 +1052,8 @@ let savingSnag = false;
 function saveSnagFromModal() {
   if (savingSnag) return;
   savingSnag = true;
-  setTimeout(() => { savingSnag = false; }, 1000);
+  setTimeout(() => { savingSnag = false; }, 3000);
+  try {
   const desc = document.getElementById('ns-desc').value.trim();
   if (!desc) { savingSnag = false; toast('Description required'); return; }
   const snags = getSnags(currentProjectId);
@@ -1056,7 +1068,13 @@ function saveSnagFromModal() {
       return n > max ? n : max;
     }, 0);
     const ref = (maxRef + 1).toString().padStart(3, '0');
-    snags.push({ id: 's_' + Date.now(), ref, description: desc, location: document.getElementById('ns-location').value.trim(), trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
+    const newLoc = document.getElementById('ns-location').value.trim();
+    if (newLoc) {
+      const locs = new Set(DB.get('snag_locations_' + currentProjectId) || []);
+      locs.add(newLoc);
+      DB.set('snag_locations_' + currentProjectId, [...locs]);
+    }
+    snags.push({ id: 's_' + Date.now(), ref, description: desc, location: newLoc, trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
   }
   const saved = saveSnags(currentProjectId, snags);
   const wasEditing = !!editingSnagId;
@@ -1066,6 +1084,11 @@ function saveSnagFromModal() {
   closeModal('modal-snag');
   renderDetail(currentProjectId, false);
   toast(wasEditing ? 'Item updated' : 'Item added');
+  } catch(err) {
+    savingSnag = false;
+    console.error('Save error:', err);
+    toast('Save failed — please try again');
+  }
 }
 
 function deleteCurrentSnag() {
@@ -1115,12 +1138,32 @@ function exportCSV() {
   toast('CSV downloaded');
 }
 
+function updateExportTitle() {
+  const type = document.getElementById('export-type').value;
+  const customInput = document.getElementById('export-title');
+  if (type === 'Custom') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.value = type;
+  }
+}
+
+function getReportTitle() {
+  const type = document.getElementById('export-type').value;
+  if (type === 'Custom') {
+    return document.getElementById('export-title').value.trim() || 'Report';
+  }
+  return type;
+}
+
 function generatePDF() {
   const p = getProjects().find(x => x.id === currentProjectId);
   const snags = getSnags(currentProjectId);
   if (!p) return;
 
-  const reportTitle = (document.getElementById('export-title') || {value: 'Snagging Report'}).value.trim() || 'Snagging Report';
+  const reportTitle = getReportTitle();
 
   const byLoc = {};
   snags.forEach(s => {
