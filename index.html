@@ -1226,13 +1226,13 @@ function handlePhotoUpload(e) {
       const img = new Image();
       img.onload = () => {
         // Resize to max 800px wide at 30% quality to keep storage small
-        const MAX = 600;
+        const MAX = 800;
         let w = img.width, h = img.height;
         if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.12));
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.08));
         renderModalPhotos();
       };
       img.src = ev.target.result;
@@ -1763,7 +1763,7 @@ function annotateClear() {
 
 function annotateDone() {
   if (annEditIndex < 0) return;
-  modalPhotos[annEditIndex] = annCanvas.toDataURL('image/jpeg', 0.92);
+  modalPhotos[annEditIndex] = annCanvas.toDataURL('image/jpeg', 0.08);
   closeModal('modal-annotate');
   renderModalPhotos();
   // remove listeners
