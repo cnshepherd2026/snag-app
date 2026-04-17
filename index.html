@@ -412,15 +412,27 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </button>
   </div>
 
-  <!-- VIEW: PROJECT DETAIL -->
+  <!-- VIEW: PROJECT DETAIL (reports list) -->
   <div class="view" id="view-detail">
     <div class="project-detail-header">
       <h2 id="detailProjectName">—</h2>
       <p id="detailProjectRef">—</p>
     </div>
+    <div class="scroll" id="reportsList"></div>
+    <button class="fab" onclick="showNewReportModal()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <!-- VIEW: REPORT DETAIL (snag items) -->
+  <div class="view" id="view-report">
+    <div class="project-detail-header">
+      <h2 id="reportDetailName">—</h2>
+      <p id="reportDetailMeta">—</p>
+    </div>
     <div class="stats-row" id="statsRow"></div>
     <div class="section-header">
-      <h3>Snag items</h3>
+      <h3>Items</h3>
       <button class="text-btn" onclick="showNewSnagModal()">+ Add item</button>
     </div>
     <div class="filter-bar">
@@ -448,23 +460,11 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <!-- VIEW: EXPORT -->
   <div class="view" id="view-export">
     <div class="scroll">
-      <div class="form-section">
-        <label class="form-label">Report type</label>
-        <div class="form-select-wrap">
-          <select class="form-select" id="export-type" onchange="updateExportTitle()">
-            <option value="Snagging Report">Snagging Report</option>
-            <option value="Site Visit Report">Site Visit Report</option>
-            <option value="Defect Report">Defect Report</option>
-            <option value="Inspection Report">Inspection Report</option>
-            <option value="Custom">Custom title…</option>
-          </select>
-        </div>
-        <input class="form-input" id="export-title" value="Snagging Report" placeholder="Enter report title" style="margin-top:8px; display:none;" />
-      </div>
+      <div id="exportReportInfo" style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);"></div>
       <div class="form-section">
         <div class="export-option" onclick="generatePDF()">
           <div class="export-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
-          <div class="export-text"><h4>Preview report</h4><p>View and print to save as PDF</p></div>
+          <div class="export-text"><h4>Preview / print report</h4><p>View and print to save as PDF</p></div>
         </div>
         <div class="export-option" onclick="exportCSV()">
           <div class="export-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg></div>
@@ -530,6 +530,56 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-project')">Cancel</button>
       <button class="btn-primary" id="projectSaveBtn" onclick="saveProject()">Create project</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NEW / EDIT REPORT -->
+<div class="modal-overlay" id="modal-report">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header"><h3 id="reportModalTitle">New report</h3></div>
+    <div class="modal-body">
+      <div class="form-section">
+        <label class="form-label">Report type</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="nr-type">
+            <option value="Snagging Report">Snagging Report</option>
+            <option value="Site Visit Report">Site Visit Report</option>
+            <option value="Defect Report">Defect Report</option>
+            <option value="Inspection Report">Inspection Report</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label">Date of inspection</label>
+          <input class="form-input" id="nr-date" type="date" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Surveyor name</label>
+          <input class="form-input" id="nr-surveyor" placeholder="e.g. Chris Shepherd" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-section">
+          <label class="form-label">Company</label>
+          <input class="form-input" id="nr-company" placeholder="e.g. JYM Partnership" />
+        </div>
+        <div class="form-section">
+          <label class="form-label">Weather / conditions</label>
+          <input class="form-input" id="nr-conditions" placeholder="e.g. Dry, overcast" />
+        </div>
+      </div>
+      <div class="form-section">
+        <label class="form-label">Notes / purpose of visit</label>
+        <textarea class="form-textarea" id="nr-notes" placeholder="e.g. Post-completion snagging inspection of units 1-4" style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-report')">Cancel</button>
+      <button class="btn-danger modal-delete-hidden" id="reportDeleteBtn" onclick="deleteReport()">Delete</button>
+      <button class="btn-primary" id="reportSaveBtn" onclick="saveReport()">Create report</button>
     </div>
   </div>
 </div>
@@ -669,6 +719,17 @@ const DB = {
 function getProjects() { return DB.get('snag_projects') || []; }
 function saveProjects(p) { DB.set('snag_projects', p); }
 function getSnags(pid) { return DB.get('snag_items_' + pid) || []; }
+function getReports(pid) { return DB.get('snag_reports_' + pid) || []; }
+function saveReports(pid, reports) { DB.set('snag_reports_' + pid, reports); }
+// Snags are now keyed by reportId
+function getReportSnags(rid) { return DB.get('snag_ritems_' + rid) || []; }
+function saveReportSnags(rid, items) {
+  try { DB.set('snag_ritems_' + rid, items); return true; }
+  catch(e) {
+    const slim = items.map(i => ({...i, photos: i.photos ? i.photos.slice(0,1) : []}));
+    try { DB.set('snag_ritems_' + rid, slim); return true; } catch(e2) { return false; }
+  }
+}
 function saveSnags(pid, items) {
   try {
     DB.set('snag_items_' + pid, items);
@@ -682,7 +743,9 @@ function saveSnags(pid, items) {
 }
 
 let currentProjectId = null;
+let currentReportId = null;
 let currentSnagId = null;
+let editingReportId = null;
 let modalPhotos = []; // base64 strings
 let editingSnagId = null;
 let editingProjectId = null;
@@ -713,7 +776,8 @@ function goBack() {
   document.getElementById('appLogo').style.display = isRoot ? 'block' : 'none';
   document.getElementById('topbarTitle').classList.toggle('visible', !isRoot);
   if (prev === 'view-projects') { renderProjects(); setTopbarActions('projects'); }
-  if (prev === 'view-detail') { renderDetail(currentProjectId, false); setTopbarActions('detail'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
+  if (prev === 'view-detail') { renderProjectDetail(currentProjectId, false); setTopbarActions('detail'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
+  if (prev === 'view-report') { renderReportDetail(currentReportId, false); setTopbarActions('report'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
 }
 
 function setTopbarActions(ctx) {
@@ -723,6 +787,11 @@ function setTopbarActions(ctx) {
   } else if (ctx === 'detail') {
     el.innerHTML = `
       <button class="icon-btn" onclick="editProject()" title="Edit project">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>`;
+  } else if (ctx === 'report') {
+    el.innerHTML = `
+      <button class="icon-btn" onclick="editReport()" title="Edit report">
         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
       <button class="icon-btn" onclick="showExportView()" title="Export">
@@ -744,9 +813,7 @@ function renderProjects() {
     return;
   }
   el.innerHTML = projects.map(p => {
-    const snags = getSnags(p.id);
-    const open = snags.filter(s => s.status === 'open').length;
-    const done = snags.filter(s => s.status === 'complete').length;
+    const reports = getReports(p.id);
     return `<div class="project-card" onclick="openProject('${p.id}')">
       <div class="project-card-top">
         <div>
@@ -756,9 +823,7 @@ function renderProjects() {
         <span class="status-pill ${p.status === 'open' ? 'status-open' : 'status-closed'}">${p.status}</span>
       </div>
       <div class="project-meta">
-        <span><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>${snags.length} items</span>
-        ${open ? `<span style="color:var(--red)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${open} open</span>` : ''}
-        ${done ? `<span style="color:var(--accent-mid)"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>${done} done</span>` : ''}
+        <span><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>${reports.length} report${reports.length !== 1 ? 's' : ''}</span>
         ${p.date ? `<span>${fmtUKDate(p.date)}</span>` : ''}
       </div>
     </div>`;
@@ -812,6 +877,77 @@ function editProject() {
   openModal('modal-project');
 }
 
+// ── REPORT CRUD ──
+function showNewReportModal() {
+  editingReportId = null;
+  document.getElementById('nr-type').value = 'Snagging Report';
+  document.getElementById('nr-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nr-surveyor').value = '';
+  document.getElementById('nr-company').value = '';
+  document.getElementById('nr-conditions').value = '';
+  document.getElementById('nr-notes').value = '';
+  document.getElementById('reportModalTitle').textContent = 'New report';
+  document.getElementById('reportSaveBtn').textContent = 'Create report';
+  document.getElementById('reportDeleteBtn').classList.add('modal-delete-hidden');
+  openModal('modal-report');
+}
+
+function editReport() {
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  if (!r) return;
+  editingReportId = currentReportId;
+  document.getElementById('nr-type').value = r.type || 'Snagging Report';
+  document.getElementById('nr-date').value = r.date || '';
+  document.getElementById('nr-surveyor').value = r.surveyor || '';
+  document.getElementById('nr-company').value = r.company || '';
+  document.getElementById('nr-conditions').value = r.conditions || '';
+  document.getElementById('nr-notes').value = r.notes || '';
+  document.getElementById('reportModalTitle').textContent = 'Edit report';
+  document.getElementById('reportSaveBtn').textContent = 'Save changes';
+  document.getElementById('reportDeleteBtn').classList.remove('modal-delete-hidden');
+  openModal('modal-report');
+}
+
+function saveReport() {
+  const type = document.getElementById('nr-type').value;
+  const reports = getReports(currentProjectId);
+  if (editingReportId) {
+    const idx = reports.findIndex(r => r.id === editingReportId);
+    if (idx > -1) {
+      reports[idx] = { ...reports[idx], type, date: document.getElementById('nr-date').value, surveyor: document.getElementById('nr-surveyor').value.trim(), company: document.getElementById('nr-company').value.trim(), conditions: document.getElementById('nr-conditions').value.trim(), notes: document.getElementById('nr-notes').value.trim() };
+    }
+    saveReports(currentProjectId, reports);
+    closeModal('modal-report');
+    renderReportDetail(currentReportId, false);
+    toast('Report updated');
+  } else {
+    const r = { id: 'r_' + Date.now(), type, date: document.getElementById('nr-date').value, surveyor: document.getElementById('nr-surveyor').value.trim(), company: document.getElementById('nr-company').value.trim(), conditions: document.getElementById('nr-conditions').value.trim(), notes: document.getElementById('nr-notes').value.trim(), created: new Date().toISOString() };
+    reports.push(r);
+    saveReports(currentProjectId, reports);
+    closeModal('modal-report');
+    currentReportId = r.id;
+    renderReportDetail(r.id, true);
+    setTopbarActions('report');
+    toast('Report created');
+  }
+  editingReportId = null;
+}
+
+function deleteReport() {
+  if (!editingReportId) return;
+  if (!confirm('Delete this report and all its items?')) return;
+  const reports = getReports(currentProjectId).filter(r => r.id !== editingReportId);
+  saveReports(currentProjectId, reports);
+  DB.set('snag_ritems_' + editingReportId, null);
+  editingReportId = null;
+  currentReportId = null;
+  closeModal('modal-report');
+  renderProjectDetail(currentProjectId, false);
+  showView('view-detail', getProjects().find(p => p.id === currentProjectId)?.name || '');
+  setTopbarActions('detail');
+  toast('Report deleted');
+}
+
 function saveProject() {
   const name = document.getElementById('np-name').value.trim();
   if (!name) { toast('Project name required'); return; }
@@ -828,7 +964,7 @@ function saveProject() {
   closeModal('modal-project');
   document.getElementById('projectSaveBtn').textContent = 'Create project';
   if (editingProjectId) {
-    renderDetail(currentProjectId, false);
+    renderProjectDetail(currentProjectId, false);
   }
   editingProjectId = null;
   renderProjects();
@@ -836,14 +972,65 @@ function saveProject() {
 }
 
 // ── PROJECT DETAIL ──
-function renderDetail(pid, switchView) {
-  const projects = getProjects();
-  const p = projects.find(x => x.id === pid);
+// Kept for goBack compatibility
+function renderDetail(pid, switchView) { renderProjectDetail(pid, switchView); }
+
+function renderProjectDetail(pid, switchView) {
+  const p = getProjects().find(x => x.id === pid);
   if (!p) return;
   document.getElementById('detailProjectName').textContent = p.name;
   document.getElementById('detailProjectRef').textContent = [p.ref, p.contractor, p.client].filter(Boolean).join(' · ');
 
-  const snags = getSnags(pid);
+  if (switchView !== false) showView('view-detail', p.name);
+
+  const reports = getReports(pid);
+  const el = document.getElementById('reportsList');
+
+  if (!reports.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No reports yet.<br>Tap + to create your first report.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = reports.map(r => {
+    const items = getReportSnags(r.id);
+    const open = items.filter(i => i.status === 'open').length;
+    const done = items.filter(i => i.status === 'complete').length;
+    return `<div class="project-card" onclick="openReport('${r.id}')">
+      <div class="project-card-top">
+        <div>
+          <div class="project-name">${r.type}</div>
+          <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
+        </div>
+        <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+      </div>
+      <div class="project-meta">
+        ${open ? `<span style="color:var(--red)">${open} open</span>` : ''}
+        ${done ? `<span style="color:var(--accent-mid)">${done} done</span>` : ''}
+        ${r.conditions ? `<span>${r.conditions}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openReport(rid) {
+  currentReportId = rid;
+  snagFilter = 'all';
+  renderReportDetail(rid, true);
+  setTopbarActions('report');
+}
+
+function renderReportDetail(rid, switchView) {
+  const pid = currentProjectId;
+  const p = getProjects().find(x => x.id === pid);
+  const r = getReports(pid).find(x => x.id === rid);
+  if (!r || !p) return;
+
+  document.getElementById('reportDetailName').textContent = r.type;
+  document.getElementById('reportDetailMeta').textContent = [
+    p.name, r.date ? fmtUKDate(r.date) : '', r.surveyor, r.company
+  ].filter(Boolean).join(' · ');
+
+  const snags = getReportSnags(rid);
   const open = snags.filter(s => s.status === 'open').length;
   const inProg = snags.filter(s => s.status === 'in-progress').length;
   const done = snags.filter(s => s.status === 'complete').length;
@@ -855,23 +1042,23 @@ function renderDetail(pid, switchView) {
     <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total</div></div>
   `;
 
-  // Populate location suggestions - combine project locations with saved locations
-  const projectLocs = snags.map(s => s.location).filter(Boolean);
-  const savedLocs = DB.get('snag_locations_' + pid) || [];
-  const allLocs = [...new Set([...savedLocs, ...projectLocs])].sort();
+  // Populate location suggestions
+  const allLocs = [...new Set([
+    ...(DB.get('snag_locations_' + rid) || []),
+    ...snags.map(s => s.location).filter(Boolean)
+  ])].sort();
   document.getElementById('locationSuggestions').innerHTML = allLocs.map(l => `<option value="${l}">`).join('');
 
-  if (switchView !== false) showView('view-detail', p.name);
+  if (switchView !== false) showView('view-report', r.type);
 
   const filtered = snags.filter(s => snagFilter === 'all' || s.status === snagFilter);
   const el = document.getElementById('snagsList');
 
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No items yet.<br>Tap + to add your first snag.</p></div>`;
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No items yet.<br>Tap + to add your first item.</p></div>`;
     return;
   }
 
-  // Group by location
   const byLocation = {};
   filtered.forEach(s => {
     const loc = s.location || 'Unassigned';
@@ -929,9 +1116,9 @@ function toggleLocation(header) {
 
 function filterSnags(f, el) {
   snagFilter = f;
-  document.querySelectorAll('#view-detail .filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#view-report .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  renderDetail(currentProjectId, false);
+  renderReportDetail(currentReportId, false);
 }
 
 // ── SNAG MODAL ──
@@ -957,7 +1144,7 @@ function showNewSnagModal() {
 }
 
 function openSnag(id) {
-  const snags = getSnags(currentProjectId);
+  const snags = getReportSnags(currentReportId);
   const s = snags.find(x => x.id === id);
   if (!s) return;
   editingSnagId = id;
@@ -1056,7 +1243,8 @@ function saveSnagFromModal() {
   try {
   const desc = document.getElementById('ns-desc').value.trim();
   if (!desc) { savingSnag = false; toast('Description required'); return; }
-  const snags = getSnags(currentProjectId);
+  const rid = currentReportId;
+  const snags = getReportSnags(rid);
   if (editingSnagId) {
     const idx = snags.findIndex(s => s.id === editingSnagId);
     if (idx > -1) {
@@ -1070,19 +1258,19 @@ function saveSnagFromModal() {
     const ref = (maxRef + 1).toString().padStart(3, '0');
     const newLoc = document.getElementById('ns-location').value.trim();
     if (newLoc) {
-      const locs = new Set(DB.get('snag_locations_' + currentProjectId) || []);
+      const locs = new Set(DB.get('snag_locations_' + rid) || []);
       locs.add(newLoc);
-      DB.set('snag_locations_' + currentProjectId, [...locs]);
+      DB.set('snag_locations_' + rid, [...locs]);
     }
     snags.push({ id: 's_' + Date.now(), ref, description: desc, location: newLoc, trade: document.getElementById('ns-trade').value.trim(), notes: document.getElementById('ns-notes').value.trim(), dateIdentified: document.getElementById('ns-date').value, status: modalStatus, priority: modalPriority, photos: [...modalPhotos], created: new Date().toISOString(), updated: new Date().toISOString() });
   }
-  const saved = saveSnags(currentProjectId, snags);
+  const saved = saveReportSnags(rid, snags);
   const wasEditing = !!editingSnagId;
   editingSnagId = null;
   savingSnag = false;
   if (!saved) { toast('Storage full — try reducing photo count'); return; }
   closeModal('modal-snag');
-  renderDetail(currentProjectId, false);
+  renderReportDetail(currentReportId, false);
   toast(wasEditing ? 'Item updated' : 'Item added');
   } catch(err) {
     savingSnag = false;
@@ -1094,30 +1282,30 @@ function saveSnagFromModal() {
 function deleteCurrentSnag() {
   if (!editingSnagId) return;
   if (!confirm('Delete this snag item?')) return;
-  const snags = getSnags(currentProjectId).filter(s => s.id !== editingSnagId);
-  saveSnags(currentProjectId, snags);
+  const snags = getReportSnags(currentReportId).filter(s => s.id !== editingSnagId);
+  saveReportSnags(currentReportId, snags);
   closeModal('modal-snag');
-  renderDetail(currentProjectId, false);
+  renderReportDetail(currentReportId, false);
   toast('Item deleted');
 }
 
 function deleteSnagFromModal() {
   if (!editingSnagId) return;
   if (!confirm('Delete this item?')) return;
-  const snags = getSnags(currentProjectId).filter(s => s.id !== editingSnagId);
-  saveSnags(currentProjectId, snags);
+  const snags = getReportSnags(currentReportId).filter(s => s.id !== editingSnagId);
+  saveReportSnags(currentReportId, snags);
   editingSnagId = null;
   closeModal('modal-snag');
-  renderDetail(currentProjectId, false);
+  renderReportDetail(currentReportId, false);
   toast('Item deleted');
 }
 
 function deleteSnagById(id, e) {
   e.stopPropagation();
   if (!confirm('Delete this item?')) return;
-  const snags = getSnags(currentProjectId).filter(s => s.id !== id);
-  saveSnags(currentProjectId, snags);
-  renderDetail(currentProjectId, false);
+  const snags = getReportSnags(currentReportId).filter(s => s.id !== id);
+  saveReportSnags(currentReportId, snags);
+  renderReportDetail(currentReportId, false);
   toast('Item deleted');
 }
 
@@ -1125,45 +1313,36 @@ function deleteSnagById(id, e) {
 function showExportView() {
   setTopbarActions('export');
   document.getElementById('exportPreview').innerHTML = '';
+  const p = getProjects().find(x => x.id === currentProjectId);
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  if (p && r) {
+    document.getElementById('exportReportInfo').innerHTML = `
+      <strong style="display:block;font-size:14px;color:var(--text);margin-bottom:4px;">${r.type}</strong>
+      ${p.name}${r.date ? ' · ' + fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}
+    `;
+  }
   showView('view-export', 'Export');
 }
 
 function exportCSV() {
   const p = getProjects().find(x => x.id === currentProjectId);
-  const snags = getSnags(currentProjectId);
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  const snags = getReportSnags(currentReportId);
   const header = ['Ref','Description','Location','Trade','Status','Priority','Date Identified','Notes','Created'];
   const rows = snags.map(s => [s.ref||s.id.slice(-4), `"${(s.description||'').replace(/"/g,'""')}"`, `"${s.location||''}"`, s.trade||'', s.status||'', s.priority||'', s.dateIdentified||'', `"${(s.notes||'').replace(/"/g,'""')}"`, s.created ? s.created.split('T')[0] : '']);
   const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
-  download(csv, `${p ? p.name.replace(/\s+/g,'-') : 'snag'}-schedule.csv`, 'text/csv');
+  const fname = [p?.name, r?.type].filter(Boolean).join('-').replace(/\s+/g,'-').toLowerCase();
+  download(csv, `${fname || 'report'}-schedule.csv`, 'text/csv');
   toast('CSV downloaded');
-}
-
-function updateExportTitle() {
-  const type = document.getElementById('export-type').value;
-  const customInput = document.getElementById('export-title');
-  if (type === 'Custom') {
-    customInput.style.display = 'block';
-    customInput.focus();
-  } else {
-    customInput.style.display = 'none';
-    customInput.value = type;
-  }
-}
-
-function getReportTitle() {
-  const type = document.getElementById('export-type').value;
-  if (type === 'Custom') {
-    return document.getElementById('export-title').value.trim() || 'Report';
-  }
-  return type;
 }
 
 function generatePDF() {
   const p = getProjects().find(x => x.id === currentProjectId);
-  const snags = getSnags(currentProjectId);
-  if (!p) return;
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  const snags = getReportSnags(currentReportId);
+  if (!p || !r) return;
 
-  const reportTitle = getReportTitle();
+  const reportTitle = r.type;
 
   const byLoc = {};
   snags.forEach(s => {
@@ -1203,7 +1382,7 @@ function generatePDF() {
     footer: 'text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;',
   };
 
-  const projDateFmt = p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB');
+  const projDateFmt = r.date ? fmtUKDate(r.date) : (p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB'));
 
   let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     * { box-sizing: border-box; }
@@ -1227,9 +1406,11 @@ function generatePDF() {
       <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${projDateFmt}</div></div>
       <div><div style="${S.metaKey}">Contractor</div><div style="${S.metaVal}">${p.contractor || '—'}</div></div>
       <div><div style="${S.metaKey}">Client</div><div style="${S.metaVal}">${p.client || '—'}</div></div>
-      ${p.author ? `<div><div style="${S.metaKey}">Prepared by</div><div style="${S.metaVal}">${p.author}</div></div>` : ''}
-      ${p.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${p.company}</div></div>` : ''}
+      ${r.surveyor ? `<div><div style="${S.metaKey}">Surveyor</div><div style="${S.metaVal}">${r.surveyor}</div></div>` : (p.author ? `<div><div style="${S.metaKey}">Prepared by</div><div style="${S.metaVal}">${p.author}</div></div>` : '')}
+      ${r.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${r.company}</div></div>` : (p.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${p.company}</div></div>` : '')}
+      ${r.conditions ? `<div><div style="${S.metaKey}">Conditions</div><div style="${S.metaVal}">${r.conditions}</div></div>` : ''}
     </div>
+    ${r.notes ? `<div style="font-size:9pt;color:#444;margin-top:10px;padding:8px;background:#f9f9f8;border-radius:3px;">${r.notes}</div>` : ''}
     <div style="${S.stats}">
       <div style="${S.stat}"><div style="${S.statN};color:#C0392B;">${open}</div><div style="${S.statL}">Open</div></div>
       <div style="${S.stat}"><div style="${S.statN};color:#B45309;">${inProg}</div><div style="${S.statL}">In progress</div></div>
