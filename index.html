@@ -371,6 +371,20 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 }
 .filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
 
+/* ── SWIPE TO DELETE ── */
+.swipe-row { position: relative; overflow: hidden; margin-bottom: 0; }
+.swipe-delete-bg {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  background: var(--red); display: flex; align-items: center; justify-content: flex-end;
+  min-width: 80px; border-radius: var(--radius-lg);
+}
+.swipe-card {
+  position: relative; transition: transform 0.2s ease;
+  will-change: transform; margin-bottom: 10px;
+  touch-action: pan-y;
+}
+.swipe-card.swiping { transition: none; }
+
 /* ── SWIPE DELETE (visual hint) ── */
 @media (max-width: 768px) {
   .scroll { padding: 16px; }
@@ -995,21 +1009,29 @@ function renderProjectDetail(pid, switchView) {
     const items = getReportSnags(r.id);
     const open = items.filter(i => i.status === 'open').length;
     const done = items.filter(i => i.status === 'complete').length;
-    return `<div class="project-card" onclick="openReport('${r.id}')">
-      <div class="project-card-top">
-        <div>
-          <div class="project-name">${r.type}</div>
-          <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
-        </div>
-        <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+    return `<div class="swipe-row" id="sr-${r.id}">
+      <div class="swipe-delete-bg">
+        <button onclick="deleteReportById('${r.id}')" style="background:none;border:none;color:#fff;font-size:13px;font-family:var(--mono);letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;padding:0 24px;">Delete</button>
       </div>
-      <div class="project-meta">
-        ${open ? `<span style="color:var(--red)">${open} open</span>` : ''}
-        ${done ? `<span style="color:var(--accent-mid)">${done} done</span>` : ''}
-        ${r.conditions ? `<span>${r.conditions}</span>` : ''}
+      <div class="project-card swipe-card" id="sc-${r.id}" onclick="openReport('${r.id}')">
+        <div class="project-card-top">
+          <div>
+            <div class="project-name">${r.type}</div>
+            <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
+          </div>
+          <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+        </div>
+        <div class="project-meta">
+          ${open ? `<span style="color:var(--red)">${open} open</span>` : ''}
+          ${done ? `<span style="color:var(--accent-mid)">${done} done</span>` : ''}
+          ${r.conditions ? `<span>${r.conditions}</span>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
+
+  // Attach swipe listeners after rendering
+  reports.forEach(r => initSwipeRow('sr-' + r.id, 'sc-' + r.id));
 }
 
 function openReport(rid) {
@@ -1528,6 +1550,54 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── SWIPE TO DELETE ──
+function initSwipeRow(rowId, cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  let startX = 0, currentX = 0, isDragging = false;
+  const THRESHOLD = 80;
+
+  function onStart(e) {
+    const touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    currentX = 0;
+    isDragging = true;
+    card.classList.add('swiping');
+  }
+
+  function onMove(e) {
+    if (!isDragging) return;
+    const touch = e.touches ? e.touches[0] : e;
+    currentX = Math.min(0, touch.clientX - startX);
+    card.style.transform = `translateX(${currentX}px)`;
+  }
+
+  function onEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    card.classList.remove('swiping');
+    if (currentX < -THRESHOLD) {
+      card.style.transform = `translateX(-${THRESHOLD + 40}px)`;
+    } else {
+      card.style.transform = 'translateX(0)';
+    }
+    currentX = 0;
+  }
+
+  card.addEventListener('touchstart', onStart, { passive: true });
+  card.addEventListener('touchmove', onMove, { passive: true });
+  card.addEventListener('touchend', onEnd);
+}
+
+function deleteReportById(rid) {
+  if (!confirm('Delete this report and all its items?')) return;
+  const reports = getReports(currentProjectId).filter(r => r.id !== rid);
+  saveReports(currentProjectId, reports);
+  DB.set('snag_ritems_' + rid, null);
+  renderProjectDetail(currentProjectId, false);
+  toast('Report deleted');
 }
 
 // ── MIGRATION: rescue items stored in old per-project format ──
