@@ -738,10 +738,34 @@ function saveReports(pid, reports) { DB.set('snag_reports_' + pid, reports); }
 // Snags are now keyed by reportId
 function getReportSnags(rid) { return DB.get('snag_ritems_' + rid) || []; }
 function saveReportSnags(rid, items) {
-  try { DB.set('snag_ritems_' + rid, items); return true; }
-  catch(e) {
-    const slim = items.map(i => ({...i, photos: i.photos ? i.photos.slice(0,1) : []}));
-    try { DB.set('snag_ritems_' + rid, slim); return true; } catch(e2) { return false; }
+  try { 
+    DB.set('snag_ritems_' + rid, items); 
+    return true; 
+  } catch(e) {
+    // Try reducing quality on all photos before dropping any
+    const recompressed = items.map(i => ({
+      ...i,
+      photos: i.photos ? i.photos.map(ph => recompressPhoto(ph, 0.5)) : []
+    }));
+    try { DB.set('snag_ritems_' + rid, recompressed); return true; } 
+    catch(e2) { 
+      toast('Storage nearly full — consider exporting and clearing old reports');
+      return false; 
+    }
+  }
+}
+
+function recompressPhoto(dataUrl, quality) {
+  try {
+    const canvas = document.createElement('canvas');
+    const img = new Image();
+    img.src = dataUrl;
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch(e) {
+    return dataUrl; // return original if recompression fails
   }
 }
 function saveSnags(pid, items) {
