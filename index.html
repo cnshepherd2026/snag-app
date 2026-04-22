@@ -1249,7 +1249,7 @@ function handlePhotoUpload(e) {
     reader.onload = ev => {
       const img = new Image();
       img.onload = () => {
-        const MAX = 1000;
+        const MAX = 800;
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -1258,7 +1258,7 @@ function handlePhotoUpload(e) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.55));
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.4));
         renderModalPhotos();
       };
       img.src = ev.target.result;
