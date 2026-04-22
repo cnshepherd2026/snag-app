@@ -1249,7 +1249,7 @@ function handlePhotoUpload(e) {
     reader.onload = ev => {
       const img = new Image();
       img.onload = () => {
-        const MAX = 900;
+        const MAX = 1200;
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
@@ -1258,7 +1258,7 @@ function handlePhotoUpload(e) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.5));
+        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.65));
         renderModalPhotos();
       };
       img.src = ev.target.result;
@@ -1475,7 +1475,7 @@ function generatePDF() {
       const sl = statusLabel[s.status] || s.status;
      const photoHtml = (s.photos && s.photos.length)
   ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">
-      ${s.photos.map(ph => `<img style="width:100%;height:80px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
+      ${s.photos.map(ph => `<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
      </div>`
   : '';
       const snagRow = `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
