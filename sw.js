@@ -1,4 +1,4 @@
-const CACHE = 'snag-v4';
+const CACHE = 'snag-v5';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
