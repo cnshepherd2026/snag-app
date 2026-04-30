@@ -1472,10 +1472,11 @@ async function generatePDF() {
     body { background: #fff; font-size: 10pt; margin: 0; padding: 16px 20px; }
     img { max-width: 100%; height: auto; }
     @page {
-      size: A4 portrait;
+      size: portrait;
       margin: 12mm 10mm;
     }
     @media print {
+      html, body { width: 210mm; }
       body { margin: 0; background: #fff; }
       img { max-width: 100% !important; height: auto !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1537,21 +1538,18 @@ async function generatePDF() {
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
   currentReportName = (p.name || 'site-report').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report';
-  const frame = document.getElementById('reportFrame');
-  frame.srcdoc = html;
-  const overlay = document.getElementById('report-overlay');
-  overlay.style.display = 'block';
-  // Toggle toolbar on tap
-  const toolbar = document.getElementById('report-toolbar');
-  toolbar.style.opacity = '1';
-  frame.onload = () => {
-    try {
-      frame.contentDocument.addEventListener('click', () => {
-        toolbar.style.opacity = toolbar.style.opacity === '0' ? '1' : '0';
-        toolbar.style.pointerEvents = toolbar.style.opacity === '0' ? 'none' : 'auto';
-      });
-    } catch(e) {}
-  };
+  // Open in new tab so @page portrait rule applies correctly when printing
+  const blob = new Blob([html], {type: 'text/html'});
+  const blobUrl = URL.createObjectURL(blob);
+  const win = window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  if (!win) {
+    // Fallback to iframe if popup blocked
+    const frame = document.getElementById('reportFrame');
+    frame.srcdoc = html;
+    document.getElementById('report-overlay').style.display = 'block';
+    document.getElementById('report-toolbar').style.opacity = '1';
+  }
 }
 
 let currentReportHtml = '';
