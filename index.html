@@ -1437,12 +1437,9 @@ async function generatePDF() {
     byLoc[loc].push(s);
   });
 
-  const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' };
-  const statusColour = { open: '#C0392B', 'in-progress': '#B45309', complete: '#4A8024' };
 
-  const open = snags.filter(s => s.status==='open').length;
-  const inProg = snags.filter(s => s.status==='in-progress').length;
-  const done = snags.filter(s => s.status==='complete').length;
+
+
 
   // All styles inline so report renders correctly in iframes and PDFShift
   const S = {
@@ -1476,13 +1473,12 @@ async function generatePDF() {
     img { max-width: 100%; height: auto; }
     @page {
       size: A4 portrait;
-      margin: 8mm;
-      margin-top: 8mm;
-      margin-bottom: 8mm;
+      margin: 12mm 10mm;
     }
     @media print {
       body { margin: 0; background: #fff; }
       img { max-width: 100% !important; height: auto !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
   </style>
 </head><body style="${S.body};padding:16px 20px;">`;
@@ -1501,17 +1497,13 @@ async function generatePDF() {
     </div>
     ${r.notes ? `<div style="font-size:9pt;color:#444;margin-top:10px;padding:8px;background:#f9f9f8;border-radius:3px;">${r.notes}</div>` : ''}
     <div style="${S.stats}">
-      <div style="${S.stat}"><div style="${S.statN};color:#C0392B;">${open}</div><div style="${S.statL}">Open</div></div>
-      <div style="${S.stat}"><div style="${S.statN};color:#B45309;">${inProg}</div><div style="${S.statL}">In progress</div></div>
-      <div style="${S.stat}"><div style="${S.statN};color:#4A8024;">${done}</div><div style="${S.statL}">Complete</div></div>
-      <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total</div></div>
+      <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total items</div></div>
     </div>
   </div>`;
 
   Object.entries(byLoc).forEach(([loc, items]) => {
     items.forEach((s, idx) => {
-      const sc = statusColour[s.status] || '#888';
-      const sl = statusLabel[s.status] || s.status;
+
      const photoHtml = (s.photos && s.photos.length)
   ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">
       ${s.photos.map(ph => `<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
@@ -1522,7 +1514,7 @@ async function generatePDF() {
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
           <div style="${S.snagMeta}">${[s.dateIdentified ? fmtUKDate(s.dateIdentified) : null, s.trade, s.priority ? 'Priority: ' + s.priority : null].filter(Boolean).join(' · ')}</div>
-          <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
+
           ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
         </div>
         ${photoHtml}
