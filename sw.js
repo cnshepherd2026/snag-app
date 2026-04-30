@@ -1,4 +1,4 @@
-const CACHE = 'snag-v5';
+const CACHE = 'snag-v6';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
@@ -9,7 +9,9 @@ self.addEventListener('activate', e => {
 });
 
 // Always network first, no caching of index.html
+// Skip Supabase requests entirely — let them go direct to avoid cloning issues
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('supabase.co')) return;
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
