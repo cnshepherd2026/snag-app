@@ -1513,7 +1513,7 @@ async function generatePDF() {
         <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description || ''}</div>
-          <div style="${S.snagMeta}">${[s.dateIdentified ? fmtUKDate(s.dateIdentified) : null, s.trade, s.priority ? 'Priority: ' + s.priority : null].filter(Boolean).join(' · ')}</div>
+          <div style="${S.snagMeta}">${s.dateIdentified ? fmtUKDate(s.dateIdentified) : ''}</div>
 
           ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
         </div>
