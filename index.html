@@ -1490,8 +1490,13 @@ async function generatePDF() {
 </head><body style="${S.body};padding:16px 20px;">`;
 
   html += `<div style="${S.cover}">
-    <div style="${S.h1}">${reportTitle}</div>
-    <div style="${S.h2}">${p.name}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+      <div>
+        <div style="${S.h1}">${reportTitle}</div>
+        <div style="${S.h2}">${p.name}</div>
+      </div>
+      <img src="${logo_data_uri}" style="height:48px;width:auto;object-fit:contain;flex-shrink:0;" alt="JYM Partnership" />
+    </div>
     <div style="${S.meta}">
       <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref || '—'}</div></div>
       <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${projDateFmt}</div></div>
