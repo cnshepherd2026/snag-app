@@ -391,6 +391,10 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .form-row { grid-template-columns: 1fr; }
 }
+
+@media print {
+  #report-toolbar { display: none !important; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -638,7 +642,8 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <!-- Floating toolbar - shown by default, hides on tap, shows again on tap -->
   <div id="report-toolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:#1a1a18; padding:10px 16px; border-radius:50px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:500; transition:opacity 0.25s;">
     <button onclick="closeReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--body); font-size:15px; cursor:pointer;">‹ Back</button>
-    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Share Report</button>
+    <button onclick="printReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Print / PDF</button>
+    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Share</button>
   </div>
   <iframe id="reportFrame" style="position:absolute; inset:0; width:100%; height:100%; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
 </div>
@@ -1472,12 +1477,12 @@ async function generatePDF() {
     body { background: #fff; font-size: 10pt; margin: 0; padding: 16px 20px; }
     img { max-width: 100%; height: auto; }
     @page {
-      size: portrait;
+      size: A4 portrait;
       margin: 12mm 10mm;
     }
     @media print {
-      html, body { width: 210mm; }
-      body { margin: 0; background: #fff; }
+      html, body { width: 210mm; max-width: 210mm; }
+      body { margin: 0 !important; padding: 10mm !important; background: #fff; }
       img { max-width: 100% !important; height: auto !important; }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     }
@@ -1538,18 +1543,20 @@ async function generatePDF() {
   // Show report in in-app viewer — never leave the PWA
   currentReportHtml = html;
   currentReportName = (p.name || 'site-report').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report';
-  // Open in new tab so @page portrait rule applies correctly when printing
-  const blob = new Blob([html], {type: 'text/html'});
-  const blobUrl = URL.createObjectURL(blob);
-  const win = window.open(blobUrl, '_blank');
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-  if (!win) {
-    // Fallback to iframe if popup blocked
-    const frame = document.getElementById('reportFrame');
-    frame.srcdoc = html;
-    document.getElementById('report-overlay').style.display = 'block';
-    document.getElementById('report-toolbar').style.opacity = '1';
-  }
+  const frame = document.getElementById('reportFrame');
+  frame.srcdoc = html;
+  const overlay = document.getElementById('report-overlay');
+  overlay.style.display = 'block';
+  const toolbar = document.getElementById('report-toolbar');
+  toolbar.style.opacity = '1';
+  frame.onload = () => {
+    try {
+      frame.contentDocument.addEventListener('click', () => {
+        toolbar.style.opacity = toolbar.style.opacity === '0' ? '1' : '0';
+        toolbar.style.pointerEvents = toolbar.style.opacity === '0' ? 'none' : 'auto';
+      });
+    } catch(e) {}
+  };
 }
 
 let currentReportHtml = '';
@@ -1557,6 +1564,15 @@ let currentReportName = '';
 
 function closeReport() {
   document.getElementById('report-overlay').style.display = 'none';
+}
+
+function printReport() {
+  const frame = document.getElementById('reportFrame');
+  try {
+    frame.contentWindow.print();
+  } catch(e) {
+    window.print();
+  }
 }
 
 function exportHtml() {
