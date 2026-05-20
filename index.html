@@ -713,43 +713,54 @@ function doSignOut() {
 
 // ── AUTH STATE ──
 
-// On load: check session immediately via getSession() — much faster than waiting for the listener
-(async () => {
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'none';
+}
+
+async function showApp(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('loading-overlay').style.display = 'flex';
+  document.getElementById('main-app').style.display = 'none';
+  await initApp();
+  document.getElementById('loading-overlay').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+}
+
+// Read session directly from localStorage — zero network, zero async delay
+(function checkStoredSession() {
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session?.user) {
-      currentUser = session.user;
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('loading-overlay').style.display = 'flex';
-      await initApp();
-      document.getElementById('loading-overlay').style.display = 'none';
-      document.getElementById('main-app').style.display = 'flex';
-    } else {
-      document.getElementById('login-screen').style.display = 'flex';
+    const storageKey = `sb-${SUPA_URL.split('//')[1].split('.')[0]}-auth-token`;
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const user = parsed?.user;
+      const expiresAt = parsed?.expires_at;
+      const notExpired = expiresAt && (expiresAt * 1000) > Date.now();
+      if (user && notExpired) {
+        // Session looks valid — load app immediately, Supabase will refresh token in background
+        showApp(user);
+        return;
+      }
     }
-  } catch(e) {
-    // On any error, fall back to login screen
-    document.getElementById('login-screen').style.display = 'flex';
-  }
+  } catch(e) {}
+  // No valid stored session — show login
+  showLogin();
 })();
 
-// Listen for ongoing auth changes (sign in / sign out)
+// Handle sign in / sign out events from Supabase
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session?.user && !currentUser) {
-    currentUser = session.user;
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('loading-overlay').style.display = 'flex';
-    await initApp();
-    document.getElementById('loading-overlay').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
+  if (event === 'SIGNED_IN' && session?.user) {
+    if (!currentUser) await showApp(session.user);
+    else currentUser = session.user; // token refreshed silently
   } else if (event === 'SIGNED_OUT') {
     currentUser = null;
-    document.getElementById('main-app').style.display = 'none';
-    document.getElementById('loading-overlay').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
     projectsCache = [];
     reportsCache = {};
     snagsCache = {};
+    showLogin();
   }
 });
 
