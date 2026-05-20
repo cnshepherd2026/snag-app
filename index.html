@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Site Report">
+<meta name="apple-mobile-web-app-title" content="Snag">
 <meta name="theme-color" content="#1a1a18">
 <link rel="manifest" href="manifest.json">
-<title>Site Report</title>
+<title>Snag — Site Inspection</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --bg: #F2F0EB;
@@ -38,8 +39,79 @@
 }
 
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
 html, body { height: 100%; overflow: hidden; font-family: var(--body); background: var(--bg); color: var(--text); font-size: 19px; }
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position: fixed; inset: 0; background: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000; flex-direction: column; padding: 32px 24px;
+}
+#login-screen .login-logo {
+  font-family: var(--display); font-size: 32px; font-weight: 700;
+  color: #fff; letter-spacing: -0.03em; margin-bottom: 8px;
+}
+#login-screen .login-logo span { color: var(--accent-mid); }
+#login-screen .login-sub {
+  font-size: 14px; color: rgba(255,255,255,0.45); font-family: var(--mono);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 40px;
+}
+.login-box {
+  width: 100%; max-width: 360px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; padding: 24px;
+}
+.login-box label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.5);
+  display: block; margin-bottom: 6px; margin-top: 16px;
+}
+.login-box label:first-child { margin-top: 0; }
+.login-box input {
+  width: 100%; padding: 11px 14px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius); font-family: var(--body); font-size: 16px;
+  color: #fff; outline: none;
+}
+.login-box input::placeholder { color: rgba(255,255,255,0.25); }
+.login-box input:focus { border-color: var(--accent-mid); }
+.login-btn {
+  width: 100%; height: 46px; margin-top: 20px;
+  background: var(--accent-mid); color: #fff; border: none;
+  border-radius: var(--radius); font-family: var(--display);
+  font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+}
+.login-btn:hover { opacity: 0.88; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-toggle {
+  text-align: center; margin-top: 16px;
+  font-size: 14px; color: rgba(255,255,255,0.4);
+}
+.login-toggle button {
+  background: none; border: none; color: rgba(255,255,255,0.7);
+  cursor: pointer; font-size: 14px; text-decoration: underline; padding: 0;
+}
+.login-err {
+  margin-top: 12px; padding: 10px 14px;
+  background: rgba(192,57,43,0.2); border: 1px solid rgba(192,57,43,0.4);
+  border-radius: var(--radius); color: #ff6b6b; font-size: 13px;
+  display: none;
+}
+.login-err.show { display: block; }
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1500; flex-direction: column; gap: 12px;
+}
+#loading-overlay .load-logo {
+  font-family: var(--display); font-weight: 700; font-size: 22px;
+  letter-spacing: -0.02em; color: var(--text);
+}
+#loading-overlay .load-logo span { color: var(--accent-mid); }
+#loading-overlay p { font-size: 13px; color: var(--text3); font-family: var(--mono); }
 
 /* ── APP SHELL ── */
 .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
@@ -78,10 +150,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; }
 
 /* ── PROJECTS LIST ── */
-.projects-header {
-  padding: 24px 20px 0;
-  flex-shrink: 0;
-}
+.projects-header { padding: 24px 20px 0; flex-shrink: 0; }
 .projects-header h2 { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 4px; }
 .projects-header p { font-size: 17px; color: var(--text2); }
 
@@ -103,10 +172,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .project-meta { display: flex; gap: 12px; font-size: 16px; color: var(--text2); margin-top: 6px; }
 .project-meta span { display: flex; align-items: center; gap: 4px; }
 .project-meta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.status-pill {
-  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
-  padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
-}
+.status-pill { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; }
 .status-open { background: var(--accent-light); color: var(--accent); }
 .status-closed { background: var(--surface2); color: var(--text3); }
 
@@ -121,9 +187,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .fab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ── PROJECT DETAIL ── */
-.project-detail-header {
-  padding: 20px 20px 0; flex-shrink: 0;
-}
+.project-detail-header { padding: 20px 20px 0; flex-shrink: 0; }
 .project-detail-header h2 { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 2px; }
 .project-detail-header p { font-size: 16px; color: var(--text2); font-family: var(--mono); }
 
@@ -135,10 +199,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .stat-card.amber .stat-num { color: var(--amber); }
 .stat-card.green .stat-num { color: var(--accent-mid); }
 
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px 10px; flex-shrink: 0;
-}
+.section-header { display: flex; align-items: center; justify-content: space-between; padding: 0 20px 10px; flex-shrink: 0; }
 .section-header h3 { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text2); }
 .text-btn {
   font-family: var(--mono); font-size: 13px; background: var(--accent-light); border: 1px solid var(--accent-mid);
@@ -152,35 +213,24 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .location-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); cursor: pointer; transition: background 0.12s;
-  user-select: none;
+  border-radius: var(--radius); cursor: pointer; transition: background 0.12s; user-select: none;
 }
 .location-header:hover { background: var(--surface2); }
 .location-header.open { border-radius: var(--radius) var(--radius) 0 0; border-bottom-color: transparent; }
 .location-name { font-family: var(--display); font-size: 18px; font-weight: 600; }
-.location-counts { display: flex; gap: 6px; align-items: center; }
-.count-badge {
-  font-family: var(--mono); font-size: 12px; padding: 2px 7px;
-  border-radius: 20px; letter-spacing: 0.04em;
-}
+.count-badge { font-family: var(--mono); font-size: 12px; padding: 2px 7px; border-radius: 20px; letter-spacing: 0.04em; }
 .cb-open { background: var(--red-light); color: var(--red); }
 .cb-done { background: var(--accent-light); color: var(--accent); }
 .chevron { transition: transform 0.2s; color: var(--text3); font-size: 12px; }
 .chevron.open { transform: rotate(180deg); }
-
-.location-items {
-  border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius);
-  overflow: hidden; display: none;
-}
+.location-items { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; display: none; }
 .location-items.open { display: block; }
 
 /* ── SNAG ITEM ── */
 .snag-item {
   display: flex; align-items: flex-start; gap: 12px;
   padding: 12px 14px; background: var(--surface);
-  border-bottom: 1px solid var(--border); cursor: pointer;
-  transition: background 0.12s;
+  border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s;
 }
 .snag-item:last-child { border-bottom: none; }
 .snag-item:hover { background: var(--surface2); }
@@ -195,16 +245,13 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .snag-desc { font-size: 17px; font-weight: 500; line-height: 1.4; margin-bottom: 4px; }
 .snag-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .snag-ref { font-family: var(--mono); font-size: 12px; color: var(--text3); }
-.snag-status {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
-  text-transform: uppercase; padding: 2px 7px; border-radius: 20px;
-}
+.snag-status { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; }
 .ss-open { background: var(--red-light); color: var(--red); }
 .ss-progress { background: var(--amber-light); color: var(--amber); }
 .ss-done { background: var(--accent-light); color: var(--accent); }
 .snag-priority { font-size: 10px; }
 
-/* ── SNAG DETAIL / ADD ── */
+/* ── FORMS ── */
 .form-section { margin-bottom: 20px; }
 .form-label { font-family: var(--mono); font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; display: block; }
 .form-input, .form-textarea, .form-select {
@@ -218,17 +265,11 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .form-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-select-wrap { position: relative; }
-.form-select-wrap::after {
-  content: '▾'; position: absolute; right: 12px; top: 50%;
-  transform: translateY(-50%); color: var(--text2); pointer-events: none; font-size: 12px;
-}
+.form-select-wrap::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text2); pointer-events: none; font-size: 12px; }
 
 /* ── PHOTO GRID ── */
 .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
-.photo-thumb {
-  aspect-ratio: 1; border-radius: var(--radius); overflow: hidden;
-  background: var(--surface2); position: relative; cursor: pointer;
-}
+.photo-thumb { aspect-ratio: 1; border-radius: var(--radius); overflow: hidden; background: var(--surface2); position: relative; cursor: pointer; }
 .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .photo-thumb .del-photo {
   position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
@@ -247,7 +288,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .add-photo-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 #photoInput { display: none; }
 
-/* ── STATUS SELECTOR ── */
+/* ── STATUS / PRIORITY ── */
 .status-group { display: flex; gap: 8px; }
 .status-opt {
   flex: 1; padding: 8px 4px; border-radius: var(--radius);
@@ -259,8 +300,6 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .status-opt.sel-open { background: var(--red-light); border-color: var(--red); color: var(--red); }
 .status-opt.sel-progress { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
 .status-opt.sel-done { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); }
-
-/* ── PRIORITY ── */
 .priority-group { display: flex; gap: 8px; }
 .priority-opt {
   flex: 1; padding: 8px 4px; border-radius: var(--radius);
@@ -273,48 +312,20 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .priority-opt.sel-medium { background: var(--amber-light); border-color: var(--amber); color: var(--amber); }
 .priority-opt.sel-high { background: var(--red-light); border-color: var(--red); color: var(--red); }
 
-/* ── BOTTOM SAVE BAR ── */
-.save-bar {
-  padding: 12px 20px; background: var(--surface);
-  border-top: 1px solid var(--border); flex-shrink: 0;
-  display: flex; gap: 10px;
-}
-.btn-primary {
-  flex: 1; height: 44px; background: var(--text); color: #fff;
-  border: none; border-radius: var(--radius); font-family: var(--display);
-  font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em;
-  transition: opacity 0.15s;
-}
+/* ── SAVE BAR ── */
+.save-bar { padding: 12px 20px; background: var(--surface); border-top: 1px solid var(--border); flex-shrink: 0; display: flex; gap: 10px; }
+.btn-primary { flex: 1; height: 44px; background: var(--text); color: #fff; border: none; border-radius: var(--radius); font-family: var(--display); font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.01em; transition: opacity 0.15s; }
 .btn-primary:hover { opacity: 0.85; }
-.btn-secondary {
-  height: 44px; padding: 0 18px; background: transparent;
-  border: 1px solid var(--border-med); border-radius: var(--radius);
-  font-family: var(--body); font-size: 16px; color: var(--text2);
-  cursor: pointer; transition: background 0.15s;
-}
+.btn-secondary { height: 44px; padding: 0 18px; background: transparent; border: 1px solid var(--border-med); border-radius: var(--radius); font-family: var(--body); font-size: 16px; color: var(--text2); cursor: pointer; transition: background 0.15s; }
 .btn-secondary:hover { background: var(--surface2); }
-.btn-danger {
-  height: 44px; padding: 0 18px; background: transparent;
-  border: 1px solid var(--red); border-radius: var(--radius);
-  font-family: var(--body); font-size: 16px; color: var(--red);
-  cursor: pointer; transition: background 0.15s;
-}
+.btn-danger { height: 44px; padding: 0 18px; background: transparent; border: 1px solid var(--red); border-radius: var(--radius); font-family: var(--body); font-size: 16px; color: var(--red); cursor: pointer; transition: background 0.15s; }
 .btn-danger:hover { background: var(--red-light); }
 
 /* ── MODAL ── */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-  z-index: 500; display: none; align-items: flex-end;
-  animation: fadeOverlay 0.2s ease;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: flex-end; animation: fadeOverlay 0.2s ease; }
 .modal-overlay.open { display: flex; }
 @keyframes fadeOverlay { from { opacity: 0; } to { opacity: 1; } }
-.modal {
-  background: var(--surface); width: 100%; max-height: 90vh;
-  border-radius: 16px 16px 0 0; overflow: hidden;
-  animation: slideUp 0.25s ease;
-  display: flex; flex-direction: column;
-}
+.modal { background: var(--surface); width: 100%; max-height: 90vh; border-radius: 16px 16px 0 0; overflow: hidden; animation: slideUp 0.25s ease; display: flex; flex-direction: column; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .modal-handle { width: 36px; height: 4px; background: var(--border-med); border-radius: 2px; margin: 12px auto 0; flex-shrink: 0; }
 .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -329,89 +340,85 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 .empty-state svg { width: 40px; height: 40px; stroke: var(--text3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; opacity: 0.5; }
 .empty-state p { font-size: 17px; line-height: 1.5; }
 
-/* ── EXPORT VIEW ── */
-.export-option {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); margin-bottom: 10px; cursor: pointer;
-  transition: box-shadow 0.15s;
-}
+/* ── EXPORT ── */
+.export-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 10px; cursor: pointer; transition: box-shadow 0.15s; }
 .export-option:hover { box-shadow: var(--shadow); }
-.export-icon {
-  width: 40px; height: 40px; border-radius: var(--radius);
-  background: var(--accent-light); display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
+.export-icon { width: 40px; height: 40px; border-radius: var(--radius); background: var(--accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .export-icon svg { width: 20px; height: 20px; stroke: var(--accent-mid); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
 .export-text h4 { font-family: var(--display); font-size: 16px; font-weight: 600; margin-bottom: 2px; }
 .export-text p { font-size: 16px; color: var(--text2); }
 
 /* ── TOAST ── */
-.toast {
-  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--text); color: #fff; padding: 10px 18px; border-radius: 20px;
-  font-size: 13px; font-family: var(--mono); letter-spacing: 0.04em;
-  opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 1000; white-space: nowrap;
-}
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 13px; font-family: var(--mono); letter-spacing: 0.04em; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 1000; white-space: nowrap; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ── FILTER BAR ── */
-.filter-bar {
-  display: flex; gap: 6px; padding: 0 20px 12px; overflow-x: auto;
-  -webkit-overflow-scrolling: touch; flex-shrink: 0;
-  scrollbar-width: none;
-}
+.filter-bar { display: flex; gap: 6px; padding: 0 20px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 0; scrollbar-width: none; }
 .filter-bar::-webkit-scrollbar { display: none; }
-.filter-chip {
-  flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
-  border: 1px solid var(--border-med); background: var(--surface);
-  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em;
-  text-transform: uppercase; cursor: pointer; color: var(--text2);
-  transition: all 0.15s; white-space: nowrap;
-}
+.filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-med); background: var(--surface); font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; color: var(--text2); transition: all 0.15s; white-space: nowrap; }
 .filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
 
-/* ── SWIPE TO DELETE ── */
+/* ── SWIPE ── */
 .swipe-row { position: relative; overflow: hidden; margin-bottom: 0; }
-.swipe-delete-bg {
-  position: absolute; top: 0; right: 0; bottom: 0;
-  background: var(--red); display: flex; align-items: center; justify-content: flex-end;
-  min-width: 80px; border-radius: var(--radius-lg);
-}
-.swipe-card {
-  position: relative; transition: transform 0.2s ease;
-  will-change: transform; margin-bottom: 10px;
-  touch-action: pan-y;
-}
+.swipe-delete-bg { position: absolute; top: 0; right: 0; bottom: 0; background: var(--red); display: flex; align-items: center; justify-content: flex-end; min-width: 80px; border-radius: var(--radius-lg); }
+.swipe-card { position: relative; transition: transform 0.2s ease; will-change: transform; margin-bottom: 10px; touch-action: pan-y; }
 .swipe-card.swiping { transition: none; }
 
-/* ── SWIPE DELETE (visual hint) ── */
 @media (max-width: 768px) {
   .scroll { padding: 16px; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
   .form-row { grid-template-columns: 1fr; }
 }
-
-@media print {
-  #report-toolbar { display: none !important; }
-}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<div class="app">
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo"><span>S</span>nag</div>
+  <div class="login-sub">Site Inspection</div>
+  <div class="login-box">
+    <div id="login-mode">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+      <label>Password</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" />
+      <div class="login-err" id="login-err"></div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
+      <div class="login-toggle">
+        No account? <button onclick="switchToSignup()">Create one</button>
+      </div>
+    </div>
+    <div id="signup-mode" style="display:none;">
+      <label>Email</label>
+      <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
+      <label>Password</label>
+      <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" />
+      <div class="login-err" id="signup-err"></div>
+      <button class="login-btn" id="signup-btn" onclick="doSignup()">Create account</button>
+      <div class="login-toggle">
+        Already have an account? <button onclick="switchToLogin()">Sign in</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <!-- TOP BAR -->
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="display:none;">
+  <div class="load-logo"><span>S</span>nag</div>
+  <p>Loading…</p>
+</div>
+
+<!-- APP -->
+<div class="app" id="main-app" style="display:none;">
+
   <div class="topbar">
     <div class="topbar-left">
       <button class="topbar-back" id="backBtn" onclick="goBack()">‹</button>
-      <div class="app-logo" id="appLogo"><span>S</span>ite Report</div>
+      <div class="app-logo" id="appLogo"><span>S</span>nag</div>
       <div class="topbar-title" id="topbarTitle"></div>
     </div>
-    <div class="topbar-actions" id="topbarActions">
-      <!-- dynamic -->
-    </div>
+    <div class="topbar-actions" id="topbarActions"></div>
   </div>
 
   <!-- VIEW: PROJECTS -->
@@ -431,7 +438,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </button>
   </div>
 
-  <!-- VIEW: PROJECT DETAIL (reports list) -->
+  <!-- VIEW: PROJECT DETAIL -->
   <div class="view" id="view-detail">
     <div class="project-detail-header">
       <h2 id="detailProjectName">—</h2>
@@ -443,7 +450,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </button>
   </div>
 
-  <!-- VIEW: REPORT DETAIL (snag items) -->
+  <!-- VIEW: REPORT DETAIL -->
   <div class="view" id="view-report">
     <div class="project-detail-header">
       <h2 id="reportDetailName">—</h2>
@@ -454,21 +461,16 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
       <h3>Items</h3>
       <button class="text-btn" onclick="showNewSnagModal()">+ Add item</button>
     </div>
-
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="filterSnags('all',this)">All</button>
+      <button class="filter-chip" onclick="filterSnags('open',this)">Open</button>
+      <button class="filter-chip" onclick="filterSnags('in-progress',this)">In progress</button>
+      <button class="filter-chip" onclick="filterSnags('complete',this)">Complete</button>
+    </div>
     <div class="scroll" id="snagsList"></div>
     <button class="fab" onclick="showNewSnagModal()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
-  </div>
-
-  <!-- VIEW: SNAG DETAIL / EDIT -->
-  <div class="view" id="view-snag">
-    <div class="scroll" id="snagDetailScroll"></div>
-    <div class="save-bar">
-      <button class="btn-secondary" onclick="goBack()">Cancel</button>
-      <button class="btn-danger" id="deleteSnagBtn" onclick="deleteCurrentSnag()">Delete</button>
-      <button class="btn-primary" onclick="saveSnag()">Save</button>
-    </div>
   </div>
 
   <!-- VIEW: EXPORT -->
@@ -477,7 +479,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
       <div id="exportReportInfo" style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--text2);"></div>
       <div class="form-section">
         <div class="export-option" onclick="generatePDF()">
-          <div class="export-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+          <div class="export-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
           <div class="export-text"><h4>Preview / print report</h4><p>View and share as HTML report</p></div>
         </div>
         <div class="export-option" onclick="exportCSV()">
@@ -485,60 +487,39 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
           <div class="export-text"><h4>Schedule (CSV)</h4><p>Flat list of all items for spreadsheet use</p></div>
         </div>
       </div>
-      <div id="exportPreview"></div>
     </div>
   </div>
 
+</div><!-- /app -->
+
+<!-- REPORT VIEWER -->
+<div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff;">
+  <div id="report-toolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:#1a1a18; padding:10px 16px; border-radius:50px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:500; transition:opacity 0.25s;">
+    <button onclick="closeReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--body); font-size:15px; cursor:pointer;">‹ Back</button>
+    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Share Report</button>
+  </div>
+  <iframe id="reportFrame" style="position:absolute; inset:0; width:100%; height:100%; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
 </div>
 
-<!-- MODAL: NEW PROJECT -->
+<!-- MODAL: NEW/EDIT PROJECT -->
 <div class="modal-overlay" id="modal-project">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header"><h3 id="projectModalTitle">New project</h3></div>
     <div class="modal-body">
-      <div class="form-section">
-        <label class="form-label">Project name</label>
-        <input class="form-input" id="np-name" placeholder="e.g. Riverside Apartments Block A" />
+      <div class="form-section"><label class="form-label">Project name</label><input class="form-input" id="np-name" placeholder="e.g. Riverside Apartments Block A" /></div>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Reference</label><input class="form-input" id="np-ref" placeholder="e.g. 2024/045" /></div>
+        <div class="form-section"><label class="form-label">Contractor</label><input class="form-input" id="np-contractor" placeholder="e.g. ABC Build Ltd" /></div>
+      </div>
+      <div class="form-section"><label class="form-label">Client</label><input class="form-input" id="np-client" placeholder="e.g. XYZ Developments" /></div>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Prepared by</label><input class="form-input" id="np-author" placeholder="e.g. Chris Shepherd" /></div>
+        <div class="form-section"><label class="form-label">Company</label><input class="form-input" id="np-company" placeholder="e.g. JYM Ltd" /></div>
       </div>
       <div class="form-row">
-        <div class="form-section">
-          <label class="form-label">Reference</label>
-          <input class="form-input" id="np-ref" placeholder="e.g. 2024/045" />
-        </div>
-        <div class="form-section">
-          <label class="form-label">Contractor</label>
-          <input class="form-input" id="np-contractor" placeholder="e.g. ABC Build Ltd" />
-        </div>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Client</label>
-        <input class="form-input" id="np-client" placeholder="e.g. XYZ Developments" />
-      </div>
-      <div class="form-row">
-        <div class="form-section">
-          <label class="form-label">Prepared by</label>
-          <input class="form-input" id="np-author" placeholder="e.g. Chris Shepherd" />
-        </div>
-        <div class="form-section">
-          <label class="form-label">Company</label>
-          <input class="form-input" id="np-company" placeholder="e.g. JYM Ltd" />
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-section">
-          <label class="form-label">Date opened</label>
-          <input class="form-input" id="np-date" type="date" />
-        </div>
-        <div class="form-section">
-          <label class="form-label">Status</label>
-          <div class="form-select-wrap">
-            <select class="form-select" id="np-status">
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-        </div>
+        <div class="form-section"><label class="form-label">Date opened</label><input class="form-input" id="np-date" type="date" /></div>
+        <div class="form-section"><label class="form-label">Status</label><div class="form-select-wrap"><select class="form-select" id="np-status"><option value="open">Open</option><option value="closed">Closed</option></select></div></div>
       </div>
     </div>
     <div class="modal-actions">
@@ -548,47 +529,22 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   </div>
 </div>
 
-<!-- MODAL: NEW / EDIT REPORT -->
+<!-- MODAL: NEW/EDIT REPORT -->
 <div class="modal-overlay" id="modal-report">
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-header"><h3 id="reportModalTitle">New report</h3></div>
     <div class="modal-body">
-      <div class="form-section">
-        <label class="form-label">Report type</label>
-        <div class="form-select-wrap">
-          <select class="form-select" id="nr-type">
-            <option value="Snagging Report">Snagging Report</option>
-            <option value="Site Visit Report">Site Visit Report</option>
-            <option value="Defect Report">Defect Report</option>
-            <option value="Inspection Report">Inspection Report</option>
-          </select>
-        </div>
+      <div class="form-section"><label class="form-label">Report type</label><div class="form-select-wrap"><select class="form-select" id="nr-type"><option>Snagging Report</option><option>Site Visit Report</option><option>Defect Report</option><option>Inspection Report</option></select></div></div>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Date of inspection</label><input class="form-input" id="nr-date" type="date" /></div>
+        <div class="form-section"><label class="form-label">Surveyor name</label><input class="form-input" id="nr-surveyor" placeholder="e.g. Chris Shepherd" /></div>
       </div>
       <div class="form-row">
-        <div class="form-section">
-          <label class="form-label">Date of inspection</label>
-          <input class="form-input" id="nr-date" type="date" />
-        </div>
-        <div class="form-section">
-          <label class="form-label">Surveyor name</label>
-          <input class="form-input" id="nr-surveyor" placeholder="e.g. Chris Shepherd" />
-        </div>
+        <div class="form-section"><label class="form-label">Company</label><input class="form-input" id="nr-company" placeholder="e.g. JYM Partnership" /></div>
+        <div class="form-section"><label class="form-label">Weather / conditions</label><input class="form-input" id="nr-conditions" placeholder="e.g. Dry, overcast" /></div>
       </div>
-      <div class="form-row">
-        <div class="form-section">
-          <label class="form-label">Company</label>
-          <input class="form-input" id="nr-company" placeholder="e.g. JYM Partnership" />
-        </div>
-        <div class="form-section">
-          <label class="form-label">Weather / conditions</label>
-          <input class="form-input" id="nr-conditions" placeholder="e.g. Dry, overcast" />
-        </div>
-      </div>
-      <div class="form-section">
-        <label class="form-label">Notes / purpose of visit</label>
-        <textarea class="form-textarea" id="nr-notes" placeholder="e.g. Post-completion snagging inspection of units 1-4" style="min-height:60px;"></textarea>
-      </div>
+      <div class="form-section"><label class="form-label">Notes / purpose of visit</label><textarea class="form-textarea" id="nr-notes" placeholder="e.g. Post-completion snagging inspection" style="min-height:60px;"></textarea></div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-report')">Cancel</button>
@@ -598,36 +554,34 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   </div>
 </div>
 
-<!-- MODAL: NEW / EDIT SNAG -->
+<!-- MODAL: NEW/EDIT SNAG -->
 <div class="modal-overlay" id="modal-snag">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-header"><h3 id="snagModalTitle">New report item</h3></div>
+    <div class="modal-header"><h3 id="snagModalTitle">New snag item</h3></div>
     <div class="modal-body">
-      <div class="form-section">
-        <label class="form-label">Description</label>
-        <textarea class="form-textarea" id="ns-desc" placeholder="Describe the defect or issue…"></textarea>
+      <div class="form-section"><label class="form-label">Description</label><textarea class="form-textarea" id="ns-desc" placeholder="Describe the defect or issue…"></textarea></div>
+      <div class="form-row">
+        <div class="form-section"><label class="form-label">Location</label><input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" /><datalist id="locationSuggestions"></datalist></div>
+        <div class="form-section"><label class="form-label">Trade</label><input class="form-input" id="ns-trade" placeholder="e.g. Joinery" list="tradeSuggestions" /><datalist id="tradeSuggestions"><option value="Joinery"><option value="Plastering"><option value="Decoration"><option value="M&amp;E"><option value="Roofing"><option value="Drainage"><option value="Brickwork"><option value="Tiling"><option value="Flooring"><option value="Glazing"><option value="External works"></datalist></div>
       </div>
-      <div class="form-section">
-          <label class="form-label">Location</label>
-          <input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" />
-          <datalist id="locationSuggestions"></datalist>
+      <div class="form-section"><label class="form-label">Date identified</label><input class="form-input" id="ns-date" type="date" /></div>
+      <div class="form-section"><label class="form-label">Status</label>
+        <div class="status-group">
+          <button class="status-opt sel-open" data-val="open" onclick="selectStatus(this)">Open</button>
+          <button class="status-opt" data-val="in-progress" onclick="selectStatus(this)">In progress</button>
+          <button class="status-opt" data-val="complete" onclick="selectStatus(this)">Complete</button>
         </div>
-      <div class="form-section">
-        <label class="form-label">Date identified</label>
-        <input class="form-input" id="ns-date" type="date" />
       </div>
-
-
-      <div class="form-section">
-        <label class="form-label">Photos</label>
-        <div class="photo-grid" id="modalPhotoGrid"></div>
-        <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotoUpload(event)" />
+      <div class="form-section"><label class="form-label">Priority</label>
+        <div class="priority-group">
+          <button class="priority-opt" data-val="low" onclick="selectPriority(this)">Low</button>
+          <button class="priority-opt sel-medium" data-val="medium" onclick="selectPriority(this)">Medium</button>
+          <button class="priority-opt" data-val="high" onclick="selectPriority(this)">High</button>
+        </div>
       </div>
-      <div class="form-section">
-        <label class="form-label">Notes</label>
-        <textarea class="form-textarea" id="ns-notes" placeholder="Additional notes, contractor response…" style="min-height:60px;"></textarea>
-      </div>
+      <div class="form-section"><label class="form-label">Photos</label><div class="photo-grid" id="modalPhotoGrid"></div><input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotoUpload(event)" /></div>
+      <div class="form-section"><label class="form-label">Notes</label><textarea class="form-textarea" id="ns-notes" placeholder="Additional notes, contractor response…" style="min-height:60px;"></textarea></div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-snag')">Cancel</button>
@@ -635,17 +589,6 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
       <button class="btn-primary" id="saveSnagBtn" onclick="saveSnagFromModal()">Save item</button>
     </div>
   </div>
-</div>
-
-<!-- REPORT VIEWER -->
-<div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff;">
-  <!-- Floating toolbar - shown by default, hides on tap, shows again on tap -->
-  <div id="report-toolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:#1a1a18; padding:10px 16px; border-radius:50px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:500; transition:opacity 0.25s;">
-    <button onclick="closeReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--body); font-size:15px; cursor:pointer;">‹ Back</button>
-    <button onclick="printReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Print / PDF</button>
-    <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Share</button>
-  </div>
-  <iframe id="reportFrame" style="position:absolute; inset:0; width:100%; height:100%; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups allow-modals"></iframe>
 </div>
 
 <!-- MODAL: PHOTO ANNOTATOR -->
@@ -691,7 +634,120 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 <div class="toast" id="toast"></div>
 
 <script>
-// ── DATE FORMATTING ──
+// ── SUPABASE ──
+const SUPA_URL = 'https://scdpjbwerkkcndfserxf.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjZHBqYndlcmtrY25kZnNlcnhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODIwNTUsImV4cCI6MjA5MDU1ODA1NX0.XWvLrKP5zQdkXQ1jcuoWJj9sH4X-SY8UEmF5DcE8lVk';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+
+// ── AUTH UI ──
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function hideErr(id) { document.getElementById(id).classList.remove('show'); }
+
+function switchToSignup() {
+  document.getElementById('login-mode').style.display = 'none';
+  document.getElementById('signup-mode').style.display = 'block';
+}
+function switchToLogin() {
+  document.getElementById('signup-mode').style.display = 'none';
+  document.getElementById('login-mode').style.display = 'block';
+}
+
+async function doLogin() {
+  hideErr('login-err');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { showErr('login-err', 'Please enter email and password.'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Sign in';
+  if (error) { showErr('login-err', error.message); }
+}
+
+async function doSignup() {
+  hideErr('signup-err');
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  if (!email || !password) { showErr('signup-err', 'Please enter email and password.'); return; }
+  if (password.length < 6) { showErr('signup-err', 'Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  const { error } = await sb.auth.signUp({ email, password });
+  btn.disabled = false; btn.textContent = 'Create account';
+  if (error) { showErr('signup-err', error.message); }
+  else { showErr('signup-err', 'Check your email to confirm your account, then sign in.'); }
+}
+
+function doSignOut() {
+  sb.auth.signOut();
+}
+
+// ── AUTH STATE ──
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('loading-overlay').style.display = 'flex';
+    await initApp();
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+  } else {
+    currentUser = null;
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    // reset app state
+    projectsCache = [];
+    reportsCache = {};
+    snagsCache = {};
+  }
+});
+
+// Enter key on login
+document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('auth-password').focus(); });
+
+// ── IN-MEMORY CACHE ──
+let projectsCache = [];
+let reportsCache = {}; // keyed by project_id
+let snagsCache = {};   // keyed by report_id
+
+async function initApp() {
+  await loadProjects();
+  renderProjects();
+  setTopbarActions('projects');
+}
+
+// ── DATA LAYER ──
+async function loadProjects() {
+  const { data, error } = await sb.from('snag_projects')
+    .select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (!error) projectsCache = data || [];
+}
+
+async function loadReports(projectId) {
+  const { data, error } = await sb.from('snag_reports')
+    .select('*').eq('project_id', projectId).eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (!error) reportsCache[projectId] = data || [];
+}
+
+async function loadSnags(reportId) {
+  const { data, error } = await sb.from('snag_items')
+    .select('*').eq('report_id', reportId).eq('user_id', currentUser.id).order('created_at', { ascending: true });
+  if (!error) snagsCache[reportId] = data || [];
+}
+
+function getProjects() { return projectsCache; }
+function getReports(pid) { return reportsCache[pid] || []; }
+function getReportSnags(rid) { return snagsCache[rid] || []; }
+
+// ── HELPERS ──
 function fmtUKDate(dateStr) {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -699,135 +755,15 @@ function fmtUKDate(dateStr) {
   return dateStr;
 }
 
-// ── SUPABASE ──
-const { createClient } = supabase;
-const _sb = createClient('https://scdpjbwerkkcndfserxf.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjZHBqYndlcmtrY25kZnNlcnhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODIwNTUsImV4cCI6MjA5MDU1ODA1NX0.XWvLrKP5zQdkXQ1jcuoWJj9sH4X-SY8UEmF5DcE8lVk');
-
-// ── STORAGE (localStorage fallback for offline) ──
-const DB = {
-  get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } },
-  set(k,v) { localStorage.setItem(k, JSON.stringify(v)); },
-};
-
-// ── DATA: PROJECTS ──
-async function getProjects() {
-  try {
-    const { data, error } = await _sb.from('snag_projects').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return data.map(p => ({
-      id: p.id, name: p.name, ref: p.ref, contractor: p.contractor,
-      client: p.client, author: p.author, company: p.company,
-      date: p.date, status: p.status, created: p.created_at
-    }));
-  } catch(e) {
-    console.warn('Supabase unavailable, using localStorage:', e?.message || e?.code || JSON.stringify(e));
-    return DB.get('snag_projects') || [];
-  }
-}
-
-async function saveProject_db(project) {
-  const row = {
-    id: project.id, name: project.name, ref: project.ref || null,
-    contractor: project.contractor || null, client: project.client || null,
-    author: project.author || null, company: project.company || null,
-    date: project.date || null, status: project.status || 'open',
-    updated_at: new Date().toISOString()
-  };
-  const { error } = await _sb.from('snag_projects').upsert(row);
-  if (error) throw error;
-}
-
-async function deleteProjectById(id) {
-  const { error } = await _sb.from('snag_projects').delete().eq('id', id);
-  if (error) throw error;
-}
-
-// ── DATA: REPORTS ──
-async function getReports(pid) {
-  try {
-    const { data, error } = await _sb.from('snag_reports').select('*').eq('project_id', pid).order('created_at', { ascending: false });
-    if (error) throw error;
-    return data.map(r => ({
-      id: r.id, type: r.type, date: r.date, surveyor: r.surveyor,
-      company: r.company, conditions: r.conditions, notes: r.notes,
-      created: r.created_at
-    }));
-  } catch(e) {
-    console.warn('Supabase getReports error:', e?.message || e?.code || JSON.stringify(e));
-    return DB.get('snag_reports_' + pid) || [];
-  }
-}
-
-async function saveReport_db(report, projectId) {
-  const row = {
-    id: report.id, project_id: projectId, type: report.type,
-    date: report.date || null, surveyor: report.surveyor || null,
-    company: report.company || null, conditions: report.conditions || null,
-    notes: report.notes || null, updated_at: new Date().toISOString()
-  };
-  const { error } = await _sb.from('snag_reports').upsert(row);
-  if (error) throw error;
-}
-
-async function deleteReportRecord(rid) {
-  const { error } = await _sb.from('snag_reports').delete().eq('id', rid);
-  if (error) throw error;
-}
-
-// ── DATA: ITEMS ──
-async function getReportSnags(rid) {
-  try {
-    const { data, error } = await _sb.from('snag_items').select('*').eq('report_id', rid).order('created_at', { ascending: true });
-    if (error) throw error;
-    return data.map(s => ({
-      id: s.id, ref: s.ref, description: s.description,
-      location: s.location, notes: s.notes,
-      photos: s.photos || [], dateIdentified: s.date_identified,
-      status: s.status, priority: s.priority, trade: s.trade,
-      created: s.created_at, updated: s.updated_at
-    }));
-  } catch(e) {
-    console.warn('Supabase getReportSnags error:', e?.message || e?.code || JSON.stringify(e));
-    return DB.get('snag_ritems_' + rid) || [];
-  }
-}
-
-async function saveSnagItem(item, reportId) {
-  const row = {
-    id: item.id, report_id: reportId, ref: item.ref,
-    description: item.description, location: item.location || null,
-    notes: item.notes || null, photos: item.photos || [],
-    date_identified: item.dateIdentified || null,
-    status: item.status || 'open', priority: item.priority || 'medium',
-    trade: item.trade || null, updated_at: new Date().toISOString()
-  };
-  const { error } = await _sb.from('snag_items').upsert(row);
-  if (error) throw error;
-}
-
-async function deleteSnagRecord(id) {
-  const { error } = await _sb.from('snag_items').delete().eq('id', id);
-  if (error) throw error;
-}
-
-function recompressPhoto(dataUrl, quality) {
-  try {
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.src = dataUrl;
-    canvas.width = img.width; canvas.height = img.height;
-    canvas.getContext('2d').drawImage(img, 0, 0);
-    return canvas.toDataURL('image/jpeg', quality);
-  } catch(e) { return dataUrl; }
-}
-
+// ── STATE ──
 let currentProjectId = null;
 let currentReportId = null;
-let currentSnagId = null;
 let editingReportId = null;
-let modalPhotos = []; // base64 strings
 let editingSnagId = null;
 let editingProjectId = null;
+let modalPhotos = [];
+let modalStatus = 'open';
+let modalPriority = 'medium';
 let snagFilter = 'all';
 let projectFilter = 'all';
 
@@ -837,7 +773,7 @@ const viewStack = ['view-projects'];
 function showView(id, title) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (!viewStack.includes(id) || viewStack[viewStack.length-1] !== id) viewStack.push(id);
+  if (viewStack[viewStack.length-1] !== id) viewStack.push(id);
   const isRoot = id === 'view-projects';
   document.getElementById('backBtn').classList.toggle('visible', !isRoot);
   document.getElementById('appLogo').style.display = isRoot ? 'block' : 'none';
@@ -845,29 +781,31 @@ function showView(id, title) {
   document.getElementById('topbarTitle').classList.toggle('visible', !isRoot);
 }
 
-async function goBack() {
+function goBack() {
   viewStack.pop();
-  const prev = viewStack[viewStack.length - 1] || 'view-projects';
+  const prev = viewStack[viewStack.length-1] || 'view-projects';
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(prev).classList.add('active');
   const isRoot = prev === 'view-projects';
   document.getElementById('backBtn').classList.toggle('visible', !isRoot);
   document.getElementById('appLogo').style.display = isRoot ? 'block' : 'none';
   document.getElementById('topbarTitle').classList.toggle('visible', !isRoot);
-  if (prev === 'view-projects') { await renderProjects(); setTopbarActions('projects'); }
-  if (prev === 'view-detail') { await renderProjectDetail(currentProjectId, false); setTopbarActions('detail'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
-  if (prev === 'view-report') { await renderReportDetail(currentReportId, false); setTopbarActions('report'); document.getElementById('backBtn').classList.add('visible'); document.getElementById('appLogo').style.display='none'; document.getElementById('topbarTitle').classList.add('visible'); }
+  if (prev === 'view-projects') { renderProjects(); setTopbarActions('projects'); }
+  if (prev === 'view-detail') { renderProjectDetail(currentProjectId, false); setTopbarActions('detail'); }
+  if (prev === 'view-report') { renderReportDetail(currentReportId, false); setTopbarActions('report'); }
 }
 
 function setTopbarActions(ctx) {
   const el = document.getElementById('topbarActions');
   if (ctx === 'projects') {
-    el.innerHTML = '';
+    // Sign out button on projects home
+    el.innerHTML = `<button class="icon-btn" onclick="doSignOut()" title="Sign out">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>`;
   } else if (ctx === 'detail') {
-    el.innerHTML = `
-      <button class="icon-btn" onclick="editProject()" title="Edit project">
-        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>`;
+    el.innerHTML = `<button class="icon-btn" onclick="editProject()" title="Edit project">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>`;
   } else if (ctx === 'report') {
     el.innerHTML = `
       <button class="icon-btn" onclick="editReport()" title="Edit report">
@@ -876,26 +814,23 @@ function setTopbarActions(ctx) {
       <button class="icon-btn" onclick="showExportView()" title="Export">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>`;
-  } else if (ctx === 'export') {
+  } else {
     el.innerHTML = '';
   }
 }
 
 // ── PROJECTS ──
-async function renderProjects() {
+function renderProjects() {
+  const projects = projectsCache.filter(p => projectFilter === 'all' || p.status === projectFilter);
   const el = document.getElementById('projectsList');
-  el.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
-  const allProjects = await getProjects();
-  const projects = allProjects.filter(p => projectFilter === 'all' || p.status === projectFilter);
-  const total = allProjects.length;
-  document.getElementById('projectCount').textContent = total === 0 ? 'No projects yet' : total + ' project' + (total !== 1 ? 's' : '');
+  document.getElementById('projectCount').textContent =
+    projectsCache.length === 0 ? 'No projects yet' : projectsCache.length + ' project' + (projectsCache.length !== 1 ? 's' : '');
   if (!projects.length) {
     el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><p>No projects yet.<br>Tap + to create your first project.</p></div>`;
     return;
   }
-  const reportsPerProject = await Promise.all(projects.map(p => getReports(p.id)));
-  el.innerHTML = projects.map((p, i) => {
-    const reports = reportsPerProject[i];
+  el.innerHTML = projects.map(p => {
+    const reports = getReports(p.id);
     return `<div class="project-card" onclick="openProject('${p.id}')">
       <div class="project-card-top">
         <div>
@@ -905,35 +840,33 @@ async function renderProjects() {
         <span class="status-pill ${p.status === 'open' ? 'status-open' : 'status-closed'}">${p.status}</span>
       </div>
       <div class="project-meta">
-        <span><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>${reports.length} report${reports.length !== 1 ? 's' : ''}</span>
+        <span>${reports.length} report${reports.length !== 1 ? 's' : ''}</span>
         ${p.date ? `<span>Opened ${fmtUKDate(p.date)}</span>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-async function filterProjects(f, el) {
+function filterProjects(f, el) {
   projectFilter = f;
-  document.querySelectorAll('.filter-bar .filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#view-projects .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  await renderProjects();
+  renderProjects();
 }
 
 async function openProject(id) {
   currentProjectId = id;
   snagFilter = 'all';
-  await renderDetail(id, true);
+  showView('view-detail', projectsCache.find(p => p.id === id)?.name || '');
   setTopbarActions('detail');
+  document.getElementById('reportsList').innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  await loadReports(id);
+  renderProjectDetail(id, false);
 }
 
 function showNewProjectModal() {
   editingProjectId = null;
-  document.getElementById('np-name').value = '';
-  document.getElementById('np-ref').value = '';
-  document.getElementById('np-contractor').value = '';
-  document.getElementById('np-client').value = '';
-  document.getElementById('np-author').value = '';
-  document.getElementById('np-company').value = '';
+  ['np-name','np-ref','np-contractor','np-client','np-author','np-company'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('np-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('np-status').value = 'open';
   document.getElementById('projectModalTitle').textContent = 'New project';
@@ -941,9 +874,8 @@ function showNewProjectModal() {
   openModal('modal-project');
 }
 
-async function editProject() {
-  const projects = await getProjects();
-  const p = projects.find(x => x.id === currentProjectId);
+function editProject() {
+  const p = projectsCache.find(x => x.id === currentProjectId);
   if (!p) return;
   editingProjectId = currentProjectId;
   document.getElementById('np-name').value = p.name || '';
@@ -959,24 +891,96 @@ async function editProject() {
   openModal('modal-project');
 }
 
-// ── REPORT CRUD ──
+async function saveProject() {
+  const name = document.getElementById('np-name').value.trim();
+  if (!name) { toast('Project name required'); return; }
+  const data = {
+    name,
+    ref: document.getElementById('np-ref').value.trim(),
+    contractor: document.getElementById('np-contractor').value.trim(),
+    client: document.getElementById('np-client').value.trim(),
+    author: document.getElementById('np-author').value.trim(),
+    company: document.getElementById('np-company').value.trim(),
+    date: document.getElementById('np-date').value,
+    status: document.getElementById('np-status').value,
+    updated_at: new Date().toISOString(),
+  };
+  document.getElementById('projectSaveBtn').disabled = true;
+  if (editingProjectId) {
+    const { error } = await sb.from('snag_projects').update(data).eq('id', editingProjectId).eq('user_id', currentUser.id);
+    if (!error) {
+      const idx = projectsCache.findIndex(p => p.id === editingProjectId);
+      if (idx > -1) projectsCache[idx] = { ...projectsCache[idx], ...data };
+      renderProjectDetail(currentProjectId, false);
+      toast('Project saved');
+    }
+  } else {
+    const newProject = { id: 'p_' + Date.now(), ...data, user_id: currentUser.id, created_at: new Date().toISOString() };
+    const { error } = await sb.from('snag_projects').insert(newProject);
+    if (!error) {
+      projectsCache.unshift(newProject);
+      toast('Project created');
+    }
+  }
+  document.getElementById('projectSaveBtn').disabled = false;
+  editingProjectId = null;
+  closeModal('modal-project');
+  renderProjects();
+}
+
+// ── PROJECT DETAIL ──
+function renderProjectDetail(pid, switchView) {
+  const p = projectsCache.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById('detailProjectName').textContent = p.name;
+  document.getElementById('detailProjectRef').textContent = [p.ref, p.contractor, p.client].filter(Boolean).join(' · ');
+  if (switchView !== false) showView('view-detail', p.name);
+  const reports = getReports(pid);
+  const el = document.getElementById('reportsList');
+  if (!reports.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No reports yet.<br>Tap + to create your first report.</p></div>`;
+    return;
+  }
+  el.innerHTML = reports.map(r => {
+    const items = getReportSnags(r.id);
+    const open = items.filter(i => i.status === 'open').length;
+    const done = items.filter(i => i.status === 'complete').length;
+    return `<div class="swipe-row" id="sr-${r.id}">
+      <div class="swipe-delete-bg">
+        <button onclick="deleteReportById('${r.id}')" style="background:none;border:none;color:#fff;font-size:13px;font-family:var(--mono);letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;padding:0 24px;">Delete</button>
+      </div>
+      <div class="project-card swipe-card" id="sc-${r.id}" onclick="openReport('${r.id}')">
+        <div class="project-card-top">
+          <div>
+            <div class="project-name">${r.type}</div>
+            <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
+          </div>
+          <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+        </div>
+        <div class="project-meta">
+          ${open ? `<span style="color:var(--red)">${open} open</span>` : ''}
+          ${done ? `<span style="color:var(--accent-mid)">${done} done</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  reports.forEach(r => initSwipeRow('sr-' + r.id, 'sc-' + r.id));
+}
+
+// ── REPORTS ──
 function showNewReportModal() {
   editingReportId = null;
   document.getElementById('nr-type').value = 'Snagging Report';
   document.getElementById('nr-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('nr-surveyor').value = '';
-  document.getElementById('nr-company').value = '';
-  document.getElementById('nr-conditions').value = '';
-  document.getElementById('nr-notes').value = '';
+  ['nr-surveyor','nr-company','nr-conditions','nr-notes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('reportModalTitle').textContent = 'New report';
   document.getElementById('reportSaveBtn').textContent = 'Create report';
   document.getElementById('reportDeleteBtn').classList.add('modal-delete-hidden');
   openModal('modal-report');
 }
 
-async function editReport() {
-  const allReports = await getReports(currentProjectId);
-  const r = allReports.find(x => x.id === currentReportId);
+function editReport() {
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
   if (!r) return;
   editingReportId = currentReportId;
   document.getElementById('nr-type').value = r.type || 'Snagging Report';
@@ -992,197 +996,143 @@ async function editReport() {
 }
 
 async function saveReport() {
-  const type = document.getElementById('nr-type').value;
-  const rid = editingReportId || ('r_' + Date.now());
-  const r = {
-    id: rid, type,
+  const data = {
+    type: document.getElementById('nr-type').value,
     date: document.getElementById('nr-date').value,
     surveyor: document.getElementById('nr-surveyor').value.trim(),
     company: document.getElementById('nr-company').value.trim(),
     conditions: document.getElementById('nr-conditions').value.trim(),
     notes: document.getElementById('nr-notes').value.trim(),
-    created: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
-  try {
-    await saveReport_db(r, currentProjectId);
-    closeModal('modal-report');
-    if (editingReportId) {
-      await renderReportDetail(currentReportId, false);
+  document.getElementById('reportSaveBtn').disabled = true;
+  if (editingReportId) {
+    const { error } = await sb.from('snag_reports').update(data).eq('id', editingReportId).eq('user_id', currentUser.id);
+    if (!error) {
+      const pid = currentProjectId;
+      const idx = (reportsCache[pid] || []).findIndex(r => r.id === editingReportId);
+      if (idx > -1) reportsCache[pid][idx] = { ...reportsCache[pid][idx], ...data };
+      renderReportDetail(currentReportId, false);
       toast('Report updated');
-    } else {
-      currentReportId = rid;
-      await renderReportDetail(rid, true);
+    }
+  } else {
+    const newReport = { id: 'r_' + Date.now(), project_id: currentProjectId, user_id: currentUser.id, ...data, created_at: new Date().toISOString() };
+    const { error } = await sb.from('snag_reports').insert(newReport);
+    if (!error) {
+      if (!reportsCache[currentProjectId]) reportsCache[currentProjectId] = [];
+      reportsCache[currentProjectId].unshift(newReport);
+      currentReportId = newReport.id;
+      snagsCache[newReport.id] = [];
+      closeModal('modal-report');
+      document.getElementById('reportSaveBtn').disabled = false;
+      editingReportId = null;
+      renderReportDetail(newReport.id, true);
       setTopbarActions('report');
       toast('Report created');
+      return;
     }
-  } catch(e) {
-    toast('Save failed — check connection');
-    console.error(e);
   }
+  document.getElementById('reportSaveBtn').disabled = false;
   editingReportId = null;
+  closeModal('modal-report');
 }
 
 async function deleteReport() {
   if (!editingReportId) return;
   if (!confirm('Delete this report and all its items?')) return;
-  try {
-    await deleteReportRecord(editingReportId);
-    editingReportId = null;
-    currentReportId = null;
-    closeModal('modal-report');
-    await renderProjectDetail(currentProjectId, false);
-    const allProjects = await getProjects();
-    showView('view-detail', allProjects.find(p => p.id === currentProjectId)?.name || '');
-    setTopbarActions('detail');
-    toast('Report deleted');
-  } catch(e) {
-    toast('Delete failed — check connection');
-    console.error(e);
-  }
+  await sb.from('snag_items').delete().eq('report_id', editingReportId).eq('user_id', currentUser.id);
+  await sb.from('snag_reports').delete().eq('id', editingReportId).eq('user_id', currentUser.id);
+  const pid = currentProjectId;
+  reportsCache[pid] = (reportsCache[pid] || []).filter(r => r.id !== editingReportId);
+  delete snagsCache[editingReportId];
+  editingReportId = null;
+  currentReportId = null;
+  closeModal('modal-report');
+  renderProjectDetail(pid, false);
+  showView('view-detail', projectsCache.find(p => p.id === pid)?.name || '');
+  setTopbarActions('detail');
+  toast('Report deleted');
 }
 
-async function saveProject() {
-  const name = document.getElementById('np-name').value.trim();
-  if (!name) { toast('Project name required'); return; }
-  const project = {
-    id: editingProjectId || ('p_' + Date.now()),
-    name, ref: document.getElementById('np-ref').value.trim(),
-    contractor: document.getElementById('np-contractor').value.trim(),
-    client: document.getElementById('np-client').value.trim(),
-    author: document.getElementById('np-author').value.trim(),
-    company: document.getElementById('np-company').value.trim(),
-    date: document.getElementById('np-date').value,
-    status: document.getElementById('np-status').value,
-    created: new Date().toISOString()
-  };
-  try {
-    await saveProject_db(project);
-    closeModal('modal-project');
-    document.getElementById('projectSaveBtn').textContent = 'Create project';
-    if (editingProjectId) {
-      currentProjectId = editingProjectId;
-      await renderProjectDetail(currentProjectId, false);
-    }
-    editingProjectId = null;
-    await renderProjects();
-    toast('Project saved');
-  } catch(e) {
-    toast('Save failed — check connection');
-    console.error(e);
-  }
+async function deleteReportById(rid) {
+  if (!confirm('Delete this report and all its items?')) return;
+  await sb.from('snag_items').delete().eq('report_id', rid).eq('user_id', currentUser.id);
+  await sb.from('snag_reports').delete().eq('id', rid).eq('user_id', currentUser.id);
+  const pid = currentProjectId;
+  reportsCache[pid] = (reportsCache[pid] || []).filter(r => r.id !== rid);
+  delete snagsCache[rid];
+  renderProjectDetail(pid, false);
+  toast('Report deleted');
 }
 
-// ── PROJECT DETAIL ──
-// Kept for goBack compatibility
-async function renderDetail(pid, switchView) { await renderProjectDetail(pid, switchView); }
-
-async function renderProjectDetail(pid, switchView) {
-  const allProjects = await getProjects();
-  const p = allProjects.find(x => x.id === pid);
-  if (!p) return;
-  document.getElementById('detailProjectName').textContent = p.name;
-  document.getElementById('detailProjectRef').textContent = [p.ref, p.contractor, p.client].filter(Boolean).join(' · ');
-
-  if (switchView !== false) showView('view-detail', p.name);
-
-  const reports = await getReports(pid);
-  const el = document.getElementById('reportsList');
-
-  if (!reports.length) {
-    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>No reports yet.<br>Tap + to create your first report.</p></div>`;
-    return;
-  }
-
-  const itemsPerReport = await Promise.all(reports.map(r => getReportSnags(r.id)));
-  el.innerHTML = reports.map((r, i) => {
-    const items = itemsPerReport[i];
-    return `<div class="swipe-row" id="sr-${r.id}">
-      <div class="swipe-delete-bg">
-        <button onclick="deleteReportById('${r.id}')" style="background:none;border:none;color:#fff;font-size:13px;font-family:var(--mono);letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;padding:0 24px;">Delete</button>
-      </div>
-      <div class="project-card swipe-card" id="sc-${r.id}" onclick="openReport('${r.id}')">
-        <div class="project-card-top">
-          <div>
-            <div class="project-name">${r.type}</div>
-            <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
-          </div>
-          <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
-        </div>
-        <div class="project-meta"></div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Attach swipe listeners after rendering
-  reports.forEach(r => initSwipeRow('sr-' + r.id, 'sc-' + r.id));
-}
-
+// ── REPORT DETAIL ──
 async function openReport(rid) {
   currentReportId = rid;
   snagFilter = 'all';
-  await renderReportDetail(rid, true);
+  const r = getReports(currentProjectId).find(x => x.id === rid);
+  showView('view-report', r?.type || '');
   setTopbarActions('report');
+  document.getElementById('snagsList').innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  await loadSnags(rid);
+  renderReportDetail(rid, false);
 }
 
-async function renderReportDetail(rid, switchView) {
+function renderReportDetail(rid, switchView) {
   const pid = currentProjectId;
-  const allProjects = await getProjects();
-  const p = allProjects.find(x => x.id === pid);
-  const allReports = await getReports(pid);
-  const r = allReports.find(x => x.id === rid);
+  const p = projectsCache.find(x => x.id === pid);
+  const r = getReports(pid).find(x => x.id === rid);
   if (!r || !p) return;
-
   document.getElementById('reportDetailName').textContent = r.type;
-  document.getElementById('reportDetailMeta').textContent = [
-    p.name, r.date ? fmtUKDate(r.date) : '', r.surveyor, r.company
-  ].filter(Boolean).join(' · ');
-
-  const snags = await getReportSnags(rid);
+  document.getElementById('reportDetailMeta').textContent = [p.name, r.date ? fmtUKDate(r.date) : '', r.surveyor, r.company].filter(Boolean).join(' · ');
+  const snags = getReportSnags(rid);
+  const open = snags.filter(s => s.status === 'open').length;
+  const inProg = snags.filter(s => s.status === 'in-progress').length;
+  const done = snags.filter(s => s.status === 'complete').length;
   document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total items</div></div>
+    <div class="stat-card red"><div class="stat-num">${open}</div><div class="stat-label">Open</div></div>
+    <div class="stat-card amber"><div class="stat-num">${inProg}</div><div class="stat-label">In progress</div></div>
+    <div class="stat-card green"><div class="stat-num">${done}</div><div class="stat-label">Complete</div></div>
+    <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total</div></div>
   `;
-
-  // Populate location suggestions
-  const allLocs = [...new Set([
-    ...snags.map(s => s.location).filter(Boolean)
-  ])].sort();
+  const allLocs = [...new Set(snags.map(s => s.location).filter(Boolean))].sort();
   document.getElementById('locationSuggestions').innerHTML = allLocs.map(l => `<option value="${l}">`).join('');
-
   if (switchView !== false) showView('view-report', r.type);
-
   const filtered = snags.filter(s => snagFilter === 'all' || s.status === snagFilter);
   const el = document.getElementById('snagsList');
-
   if (!filtered.length) {
     el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><p>No items yet.<br>Tap + to add your first item.</p></div>`;
     return;
   }
-
   const byLocation = {};
   filtered.forEach(s => {
     const loc = s.location || 'Unassigned';
     if (!byLocation[loc]) byLocation[loc] = [];
     byLocation[loc].push(s);
   });
-
   el.innerHTML = Object.entries(byLocation).map(([loc, items]) => {
-    const itemsHtml = items.map(s => snagItemHtml(s)).join('');
+    const locOpen = items.filter(i => i.status === 'open').length;
+    const locDone = items.filter(i => i.status === 'complete').length;
     return `<div class="location-group">
       <div class="location-header open" onclick="toggleLocation(this)">
         <span class="location-name">${loc}</span>
         <div style="display:flex;gap:6px;align-items:center;">
-          <span class="count-badge cb-done">${items.length}</span>
+          ${locOpen ? `<span class="count-badge cb-open">${locOpen} open</span>` : ''}
+          ${locDone ? `<span class="count-badge cb-done">${locDone} done</span>` : ''}
           <span class="chevron open">▾</span>
         </div>
       </div>
-      <div class="location-items open">${itemsHtml}</div>
+      <div class="location-items open">${items.map(s => snagItemHtml(s)).join('')}</div>
     </div>`;
   }).join('');
 }
 
 function snagItemHtml(s) {
-  const thumb = s.photos && s.photos[0]
-    ? `<div class="snag-thumb"><img src="${s.photos[0]}" alt="photo" /></div>`
+  const statusClass = { open: 'ss-open', 'in-progress': 'ss-progress', complete: 'ss-done' }[s.status] || 'ss-open';
+  const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' }[s.status] || s.status;
+  const priorityEmoji = { low: '↓', medium: '→', high: '↑' }[s.priority] || '';
+  const photos = s.photos || [];
+  const thumb = photos[0]
+    ? `<div class="snag-thumb"><img src="${photos[0]}" alt="photo" /></div>`
     : `<div class="snag-thumb">📷</div>`;
   return `<div class="snag-item" onclick="openSnag('${s.id}')">
     ${thumb}
@@ -1190,8 +1140,10 @@ function snagItemHtml(s) {
       <div class="snag-desc">${s.description || 'No description'}</div>
       <div class="snag-meta">
         <span class="snag-ref">#${s.ref || s.id.slice(-4)}</span>
-        ${s.location ? `<span style="font-size:11px;color:var(--text3);">${s.location}</span>` : ''}
-        ${s.dateIdentified ? `<span style="font-size:11px;color:var(--text3);">${fmtUKDate(s.dateIdentified)}</span>` : ''}
+        <span class="snag-status ${statusClass}">${statusLabel}</span>
+        ${s.trade ? `<span style="font-size:11px;color:var(--text3);">${s.trade}</span>` : ''}
+        ${s.date_identified ? `<span style="font-size:11px;color:var(--text3);">${fmtUKDate(s.date_identified)}</span>` : ''}
+        ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
       </div>
     </div>
     <button onclick="deleteSnagById('${s.id}', event)" style="flex-shrink:0; background:none; border:none; color:var(--text3); font-size:20px; padding:8px 4px 8px 12px; cursor:pointer; line-height:1;" title="Delete item">×</button>
@@ -1200,86 +1152,69 @@ function snagItemHtml(s) {
 
 function toggleLocation(header) {
   header.classList.toggle('open');
-  const items = header.nextElementSibling;
-  items.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
   header.querySelector('.chevron').classList.toggle('open');
 }
 
-async function filterSnags(f, el) {
+function filterSnags(f, el) {
   snagFilter = f;
   document.querySelectorAll('#view-report .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  await renderReportDetail(currentReportId, false);
+  renderReportDetail(currentReportId, false);
 }
 
 // ── SNAG MODAL ──
-let modalStatus = 'open';
-let modalPriority = 'medium';
-
 function showNewSnagModal() {
   editingSnagId = null;
   document.getElementById('ns-desc').value = '';
   document.getElementById('ns-location').value = '';
+  document.getElementById('ns-trade').value = '';
   document.getElementById('ns-notes').value = '';
   document.getElementById('ns-date').value = new Date().toISOString().split('T')[0];
   modalPhotos = [];
-  document.getElementById('snagModalTitle').textContent = 'New report item';
+  modalStatus = 'open';
+  modalPriority = 'medium';
+  document.getElementById('snagModalTitle').textContent = 'New snag item';
   document.getElementById('modalDeleteBtn').classList.add('modal-delete-hidden');
-  renderModalPhotos();
+  refreshStatusBtns(); refreshPriorityBtns(); renderModalPhotos();
   openModal('modal-snag');
 }
 
-async function openSnag(id) {
-  const snags = await getReportSnags(currentReportId);
-  const s = snags.find(x => x.id === id);
+function openSnag(id) {
+  const s = getReportSnags(currentReportId).find(x => x.id === id);
   if (!s) return;
   editingSnagId = id;
   document.getElementById('ns-desc').value = s.description || '';
   document.getElementById('ns-location').value = s.location || '';
+  document.getElementById('ns-trade').value = s.trade || '';
   document.getElementById('ns-notes').value = s.notes || '';
-  document.getElementById('ns-date').value = s.dateIdentified || new Date().toISOString().split('T')[0];
+  document.getElementById('ns-date').value = s.date_identified || new Date().toISOString().split('T')[0];
   modalPhotos = s.photos ? [...s.photos] : [];
+  modalStatus = s.status || 'open';
+  modalPriority = s.priority || 'medium';
   document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
   document.getElementById('modalDeleteBtn').classList.remove('modal-delete-hidden');
-  renderModalPhotos();
+  refreshStatusBtns(); refreshPriorityBtns(); renderModalPhotos();
   openModal('modal-snag');
 }
 
-function selectStatus(btn) {
-  modalStatus = btn.dataset.val;
-  refreshStatusBtns();
-}
-
+function selectStatus(btn) { modalStatus = btn.dataset.val; refreshStatusBtns(); }
 function refreshStatusBtns() {
   document.querySelectorAll('.status-opt').forEach(b => {
     b.className = 'status-opt';
-    if (b.dataset.val === modalStatus) {
-      if (modalStatus === 'open') b.classList.add('sel-open');
-      else if (modalStatus === 'in-progress') b.classList.add('sel-progress');
-      else if (modalStatus === 'complete') b.classList.add('sel-done');
-    }
+    if (b.dataset.val === modalStatus) b.classList.add(modalStatus === 'open' ? 'sel-open' : modalStatus === 'in-progress' ? 'sel-progress' : 'sel-done');
   });
 }
-
-function selectPriority(btn) {
-  modalPriority = btn.dataset.val;
-  refreshPriorityBtns();
-}
-
+function selectPriority(btn) { modalPriority = btn.dataset.val; refreshPriorityBtns(); }
 function refreshPriorityBtns() {
   document.querySelectorAll('.priority-opt').forEach(b => {
     b.className = 'priority-opt';
-    if (b.dataset.val === modalPriority) {
-      if (modalPriority === 'low') b.classList.add('sel-low');
-      else if (modalPriority === 'medium') b.classList.add('sel-medium');
-      else if (modalPriority === 'high') b.classList.add('sel-high');
-    }
+    if (b.dataset.val === modalPriority) b.classList.add(modalPriority === 'low' ? 'sel-low' : modalPriority === 'medium' ? 'sel-medium' : 'sel-high');
   });
 }
 
 function handlePhotoUpload(e) {
-  const files = Array.from(e.target.files);
-  files.forEach(f => {
+  Array.from(e.target.files).forEach(f => {
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
@@ -1288,7 +1223,7 @@ function handlePhotoUpload(e) {
         let w = img.width, h = img.height;
         if (w > MAX || h > MAX) {
           if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else       { w = Math.round(w * MAX / h); h = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
         }
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
@@ -1308,100 +1243,87 @@ function renderModalPhotos() {
   grid.innerHTML = modalPhotos.map((p, i) =>
     `<div class="photo-thumb"><img src="${p}" /><button class="del-photo" onclick="removePhoto(${i})" style="width:28px;height:28px;font-size:16px;" title="Delete photo">×</button><button onclick="openAnnotator(${i})" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;background:rgba(0,0,0,0.6);border-radius:50%;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Annotate">✎</button></div>`
   ).join('') + `<div class="add-photo-btn" onclick="document.getElementById('photoInput').click()">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-    Add photo
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Add photo
   </div>`;
 }
 
-function removePhoto(i) {
-  modalPhotos.splice(i, 1);
-  renderModalPhotos();
-}
+function removePhoto(i) { modalPhotos.splice(i, 1); renderModalPhotos(); }
 
 let savingSnag = false;
 async function saveSnagFromModal() {
   if (savingSnag) return;
+  const desc = document.getElementById('ns-desc').value.trim();
+  if (!desc) { toast('Description required'); return; }
   savingSnag = true;
-  setTimeout(() => { savingSnag = false; }, 3000);
-  try {
-    const desc = document.getElementById('ns-desc').value.trim();
-    if (!desc) { savingSnag = false; toast('Description required'); return; }
-    const rid = currentReportId;
-    const snags = await getReportSnags(rid);
-    const sid = editingSnagId || ('s_' + Date.now());
-    const maxRef = snags.reduce((max, s) => {
-      const n = parseInt(s.ref || '0', 10);
-      return n > max ? n : max;
-    }, 0);
-    const ref = editingSnagId
-      ? (snags.find(s => s.id === editingSnagId)?.ref || (maxRef).toString().padStart(3,'0'))
-      : (maxRef + 1).toString().padStart(3, '0');
-    const item = {
-      id: sid, ref,
-      description: desc,
-      location: document.getElementById('ns-location').value.trim(),
-      notes: document.getElementById('ns-notes').value.trim(),
-      dateIdentified: document.getElementById('ns-date').value,
-      status: 'open', priority: 'medium', trade: null,
-      photos: [...modalPhotos],
-      created: new Date().toISOString(), updated: new Date().toISOString()
+  document.getElementById('saveSnagBtn').disabled = true;
+  const snags = getReportSnags(currentReportId);
+  const data = {
+    description: desc,
+    location: document.getElementById('ns-location').value.trim(),
+    trade: document.getElementById('ns-trade').value.trim(),
+    notes: document.getElementById('ns-notes').value.trim(),
+    date_identified: document.getElementById('ns-date').value,
+    status: modalStatus,
+    priority: modalPriority,
+    photos: [...modalPhotos],
+    updated_at: new Date().toISOString(),
+  };
+  if (editingSnagId) {
+    const { error } = await sb.from('snag_items').update(data).eq('id', editingSnagId).eq('user_id', currentUser.id);
+    if (!error) {
+      const idx = snags.findIndex(s => s.id === editingSnagId);
+      if (idx > -1) snagsCache[currentReportId][idx] = { ...snags[idx], ...data };
+      toast('Item updated');
+    }
+  } else {
+    const maxRef = snags.reduce((max, s) => { const n = parseInt(s.ref || '0', 10); return n > max ? n : max; }, 0);
+    const newSnag = {
+      id: 's_' + Date.now(),
+      report_id: currentReportId,
+      user_id: currentUser.id,
+      ref: (maxRef + 1).toString().padStart(3, '0'),
+      ...data,
+      created_at: new Date().toISOString(),
     };
-    await saveSnagItem(item, rid);
-    const wasEditing = !!editingSnagId;
-    editingSnagId = null;
-    savingSnag = false;
-    closeModal('modal-snag');
-    await renderReportDetail(currentReportId, false);
-    toast(wasEditing ? 'Item updated' : 'Item added');
-  } catch(err) {
-    savingSnag = false;
-    console.error('Save error:', err);
-    toast('Save failed — please try again');
+    const { error } = await sb.from('snag_items').insert(newSnag);
+    if (!error) {
+      if (!snagsCache[currentReportId]) snagsCache[currentReportId] = [];
+      snagsCache[currentReportId].push(newSnag);
+      toast('Item added');
+    }
   }
-}
-
-async function deleteCurrentSnag() {
-  if (!editingSnagId) return;
-  if (!confirm('Delete this snag item?')) return;
-  try {
-    await deleteSnagRecord(editingSnagId);
-    editingSnagId = null;
-    closeModal('modal-snag');
-    await renderReportDetail(currentReportId, false);
-    toast('Item deleted');
-  } catch(e) { toast('Delete failed'); console.error(e); }
+  editingSnagId = null;
+  savingSnag = false;
+  document.getElementById('saveSnagBtn').disabled = false;
+  closeModal('modal-snag');
+  renderReportDetail(currentReportId, false);
 }
 
 async function deleteSnagFromModal() {
   if (!editingSnagId) return;
   if (!confirm('Delete this item?')) return;
-  try {
-    await deleteSnagRecord(editingSnagId);
-    editingSnagId = null;
-    closeModal('modal-snag');
-    await renderReportDetail(currentReportId, false);
-    toast('Item deleted');
-  } catch(e) { toast('Delete failed'); console.error(e); }
+  await sb.from('snag_items').delete().eq('id', editingSnagId).eq('user_id', currentUser.id);
+  snagsCache[currentReportId] = (snagsCache[currentReportId] || []).filter(s => s.id !== editingSnagId);
+  editingSnagId = null;
+  closeModal('modal-snag');
+  renderReportDetail(currentReportId, false);
+  toast('Item deleted');
 }
 
 async function deleteSnagById(id, e) {
   e.stopPropagation();
   if (!confirm('Delete this item?')) return;
-  try {
-    await deleteSnagRecord(id);
-    await renderReportDetail(currentReportId, false);
-    toast('Item deleted');
-  } catch(e) { toast('Delete failed'); console.error(e); }
+  await sb.from('snag_items').delete().eq('id', id).eq('user_id', currentUser.id);
+  snagsCache[currentReportId] = (snagsCache[currentReportId] || []).filter(s => s.id !== id);
+  renderReportDetail(currentReportId, false);
+  toast('Item deleted');
 }
 
 // ── EXPORT ──
-async function showExportView() {
+function showExportView() {
   setTopbarActions('export');
-  document.getElementById('exportPreview').innerHTML = '';
-  const allProjects = await getProjects();
-  const p = allProjects.find(x => x.id === currentProjectId);
-  const allReports = await getReports(currentProjectId);
-  const r = allReports.find(x => x.id === currentReportId);
+  const p = projectsCache.find(x => x.id === currentProjectId);
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
   if (p && r) {
     document.getElementById('exportReportInfo').innerHTML = `
       <strong style="display:block;font-size:14px;color:var(--text);margin-bottom:4px;">${r.type}</strong>
@@ -1411,143 +1333,97 @@ async function showExportView() {
   showView('view-export', 'Export');
 }
 
-async function exportCSV() {
-  const allProjects = await getProjects();
-  const p = allProjects.find(x => x.id === currentProjectId);
-  const allReports = await getReports(currentProjectId);
-  const r = allReports.find(x => x.id === currentReportId);
-  const snags = await getReportSnags(currentReportId);
+function exportCSV() {
+  const p = projectsCache.find(x => x.id === currentProjectId);
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  const snags = getReportSnags(currentReportId);
   const header = ['Ref','Description','Location','Trade','Status','Priority','Date Identified','Notes','Created'];
-  const rows = snags.map(s => [s.ref||s.id.slice(-4), `"${(s.description||'').replace(/"/g,'""')}"`, `"${s.location||''}"`, s.trade||'', s.status||'', s.priority||'', s.dateIdentified||'', `"${(s.notes||'').replace(/"/g,'""')}"`, s.created ? s.created.split('T')[0] : '']);
+  const rows = snags.map(s => [s.ref||s.id.slice(-4), `"${(s.description||'').replace(/"/g,'""')}"`, `"${s.location||''}"`, s.trade||'', s.status||'', s.priority||'', s.date_identified||'', `"${(s.notes||'').replace(/"/g,'""')}"`, s.created_at ? s.created_at.split('T')[0] : '']);
   const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
   const fname = [p?.name, r?.type].filter(Boolean).join('-').replace(/\s+/g,'-').toLowerCase();
-  download(csv, `${fname || 'report'}-schedule.csv`, 'text/csv');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `${fname || 'report'}-schedule.csv`;
+  a.click();
   toast('CSV downloaded');
 }
 
-async function generatePDF() {
-  const allProjects = await getProjects();
-  const p = allProjects.find(x => x.id === currentProjectId);
-  const allReports = await getReports(currentProjectId);
-  const r = allReports.find(x => x.id === currentReportId);
-  const snags = await getReportSnags(currentReportId);
+function generatePDF() {
+  const p = projectsCache.find(x => x.id === currentProjectId);
+  const r = getReports(currentProjectId).find(x => x.id === currentReportId);
+  const snags = getReportSnags(currentReportId);
   if (!p || !r) return;
-
-  const reportTitle = r.type;
-
   const byLoc = {};
-  snags.forEach(s => {
-    const loc = s.location || 'Unassigned';
-    if (!byLoc[loc]) byLoc[loc] = [];
-    byLoc[loc].push(s);
-  });
-
-
-
-
-
-  // All styles inline so report renders correctly in iframes and PDFShift
+  snags.forEach(s => { const loc = s.location || 'Unassigned'; if (!byLoc[loc]) byLoc[loc] = []; byLoc[loc].push(s); });
+  const open = snags.filter(s => s.status==='open').length;
+  const inProg = snags.filter(s => s.status==='in-progress').length;
+  const done = snags.filter(s => s.status==='complete').length;
+  const statusLabel = { open:'Open','in-progress':'In progress',complete:'Complete' };
+  const statusColour = { open:'#C0392B','in-progress':'#B45309',complete:'#4A8024' };
   const S = {
-    body: 'font-family:Helvetica Neue,Arial,sans-serif;font-size:10pt;color:#1a1a18;margin:0;padding:0;background:#fff;',
-    cover: 'padding:16px 0 14px;border-bottom:2px solid #1a1a18;margin-bottom:12px;',
-    h1: 'font-size:18pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 2px;',
-    h2: 'font-size:11pt;font-weight:400;color:#6B6960;margin:0 0 10px;',
-    meta: 'display:grid;grid-template-columns:1fr 1fr;gap:3px 20px;font-size:9pt;',
-    metaKey: 'color:#6B6960;text-transform:uppercase;font-size:7pt;letter-spacing:0.06em;',
-    metaVal: 'font-weight:500;font-size:9pt;',
-    stats: 'display:flex;gap:8px;margin:10px 0 0;',
-    stat: 'background:#f2f0eb;padding:6px 12px;border-radius:4px;',
-    statN: 'font-size:14pt;font-weight:800;line-height:1;',
-    statL: 'font-size:7pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;',
-    locH: 'font-size:8pt;font-weight:700;padding:4px 0;background:#1a1a18;color:#fff;margin:8px 0 0;letter-spacing:0.06em;text-transform:uppercase;padding-left:8px;',
-    snag: 'display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eee;',
-    snagNum: 'font-family:monospace;font-size:8pt;color:#A09D98;min-width:30px;padding-top:1px;flex-shrink:0;',
-    snagBody: 'flex:1;min-width:0;',
-    snagDesc: 'font-size:10pt;font-weight:600;margin-bottom:2px;',
-    snagMeta: 'font-size:8pt;color:#6B6960;margin-bottom:4px;',
-    snagStatus: 'display:inline-block;padding:1px 6px;border-radius:8px;font-size:7pt;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;',
-    snagNotes: 'font-size:9pt;color:#444;margin-top:6px;padding:6px;background:#f9f9f8;border-radius:3px;',
-    footer: 'text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;',
+    body:'font-family:Helvetica Neue,Arial,sans-serif;font-size:10pt;color:#1a1a18;margin:0;padding:16px 20px;background:#fff;',
+    cover:'padding:16px 0 14px;border-bottom:2px solid #1a1a18;margin-bottom:12px;',
+    h1:'font-size:18pt;font-weight:800;letter-spacing:-0.02em;margin:0 0 2px;',
+    h2:'font-size:11pt;font-weight:400;color:#6B6960;margin:0 0 10px;',
+    meta:'display:grid;grid-template-columns:1fr 1fr;gap:3px 20px;font-size:9pt;',
+    metaKey:'color:#6B6960;text-transform:uppercase;font-size:7pt;letter-spacing:0.06em;',
+    metaVal:'font-weight:500;font-size:9pt;',
+    stats:'display:flex;gap:8px;margin:10px 0 0;',
+    stat:'background:#f2f0eb;padding:6px 12px;border-radius:4px;',
+    statN:'font-size:14pt;font-weight:800;line-height:1;',
+    statL:'font-size:7pt;color:#6B6960;text-transform:uppercase;letter-spacing:0.06em;margin-top:2px;',
+    locH:'font-size:8pt;font-weight:700;padding:4px 8px;background:#1a1a18;color:#fff;margin:8px 0 0;letter-spacing:0.06em;text-transform:uppercase;',
+    snag:'display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #eee;',
+    snagNum:'font-family:monospace;font-size:8pt;color:#A09D98;min-width:30px;padding-top:1px;flex-shrink:0;',
+    snagBody:'flex:1;min-width:0;',
+    snagDesc:'font-size:10pt;font-weight:600;margin-bottom:2px;',
+    snagMeta:'font-size:8pt;color:#6B6960;margin-bottom:4px;',
+    snagStatus:'display:inline-block;padding:1px 6px;border-radius:8px;font-size:7pt;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;',
+    snagNotes:'font-size:9pt;color:#444;margin-top:6px;padding:6px;background:#f9f9f8;border-radius:3px;',
+    footer:'text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;',
   };
-
-  const projDateFmt = r.date ? fmtUKDate(r.date) : (p.date ? fmtUKDate(p.date) : new Date().toLocaleDateString('en-GB'));
-
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-    * { box-sizing: border-box; }
-    body { background: #fff; font-size: 10pt; margin: 0; padding: 16px 20px; }
-    img { max-width: 100%; height: auto; }
-    @page {
-      size: A4 portrait;
-      margin: 12mm 10mm;
-    }
-    @media print {
-      html, body { width: 210mm; max-width: 210mm; }
-      body { margin: 0 !important; padding: 10mm !important; background: #fff; }
-      img { max-width: 100% !important; height: auto !important; }
-      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head><body style="${S.body};padding:16px 20px;">`;
-
-  html += `<div style="${S.cover}">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-      <div>
-        <div style="${S.h1}">${reportTitle}</div>
-        <div style="${S.h2}">${p.name}</div>
-      </div>
-      <img src="data:image/jpeg;base64,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" style="height:48px;max-height:48px;width:auto;max-width:160px;object-fit:contain;flex-shrink:0;" alt="JYM Partnership" />
-    </div>
+  const projDateFmt = r.date ? fmtUKDate(r.date) : new Date().toLocaleDateString('en-GB');
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;}body{margin:0;padding:16px 20px;}img{max-width:100%;height:auto;}@page{size:A4 portrait;margin:8mm;}@media print{body{margin:0;}}</style></head><body style="${S.body}">`;
+  html += `<div style="${S.cover}"><div style="${S.h1}">${r.type}</div><div style="${S.h2}">${p.name}</div>
     <div style="${S.meta}">
-      <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref || '—'}</div></div>
+      <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref||'—'}</div></div>
       <div><div style="${S.metaKey}">Date</div><div style="${S.metaVal}">${projDateFmt}</div></div>
-      <div><div style="${S.metaKey}">Contractor</div><div style="${S.metaVal}">${p.contractor || '—'}</div></div>
-      <div><div style="${S.metaKey}">Client</div><div style="${S.metaVal}">${p.client || '—'}</div></div>
-      ${r.surveyor ? `<div><div style="${S.metaKey}">Surveyor</div><div style="${S.metaVal}">${r.surveyor}</div></div>` : (p.author ? `<div><div style="${S.metaKey}">Prepared by</div><div style="${S.metaVal}">${p.author}</div></div>` : '')}
-      ${r.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${r.company}</div></div>` : (p.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${p.company}</div></div>` : '')}
+      <div><div style="${S.metaKey}">Contractor</div><div style="${S.metaVal}">${p.contractor||'—'}</div></div>
+      <div><div style="${S.metaKey}">Client</div><div style="${S.metaVal}">${p.client||'—'}</div></div>
+      ${r.surveyor ? `<div><div style="${S.metaKey}">Surveyor</div><div style="${S.metaVal}">${r.surveyor}</div></div>` : ''}
+      ${r.company ? `<div><div style="${S.metaKey}">Company</div><div style="${S.metaVal}">${r.company}</div></div>` : ''}
       ${r.conditions ? `<div><div style="${S.metaKey}">Conditions</div><div style="${S.metaVal}">${r.conditions}</div></div>` : ''}
     </div>
     ${r.notes ? `<div style="font-size:9pt;color:#444;margin-top:10px;padding:8px;background:#f9f9f8;border-radius:3px;">${r.notes}</div>` : ''}
     <div style="${S.stats}">
-      <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total items</div></div>
+      <div style="${S.stat}"><div style="${S.statN};color:#C0392B;">${open}</div><div style="${S.statL}">Open</div></div>
+      <div style="${S.stat}"><div style="${S.statN};color:#B45309;">${inProg}</div><div style="${S.statL}">In progress</div></div>
+      <div style="${S.stat}"><div style="${S.statN};color:#4A8024;">${done}</div><div style="${S.statL}">Complete</div></div>
+      <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total</div></div>
     </div>
   </div>`;
-
   Object.entries(byLoc).forEach(([loc, items]) => {
     items.forEach((s, idx) => {
-
-     const photoHtml = (s.photos && s.photos.length)
-  ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">
-      ${s.photos.map(ph => `<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}
-     </div>`
-  : '';
+      const sc = statusColour[s.status]||'#888';
+      const sl = statusLabel[s.status]||s.status;
+      const photoHtml = (s.photos&&s.photos.length) ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">${s.photos.map(ph=>`<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}</div>` : '';
       const snagRow = `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
-        <div style="${S.snagNum}">#${s.ref || s.id.slice(-4)}</div>
+        <div style="${S.snagNum}">#${s.ref||s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
-          <div style="${S.snagDesc}">${s.description || ''}</div>
-          <div style="${S.snagMeta}">${s.dateIdentified ? fmtUKDate(s.dateIdentified) : ''}</div>
-
-          ${s.notes ? `<div style="${S.snagNotes}">${s.notes}</div>` : ''}
-        </div>
-        ${photoHtml}
+          <div style="${S.snagDesc}">${s.description||''}</div>
+          <div style="${S.snagMeta}">${[s.date_identified?fmtUKDate(s.date_identified):null,s.trade,s.priority?'Priority: '+s.priority:null].filter(Boolean).join(' · ')}</div>
+          <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
+          ${s.notes?`<div style="${S.snagNotes}">${s.notes}</div>`:''}
+        </div>${photoHtml}
       </div>`;
-      if (idx === 0) {
-        // display:table is the most reliable way to keep heading+first item together in Safari
-        html += `<div style="display:table;width:100%;break-inside:avoid;page-break-inside:avoid;">
-          <div style="${S.locH}">${loc}</div>
-          ${snagRow}
-        </div>`;
-      } else {
-        html += snagRow;
-      }
+      if (idx===0) {
+        html += `<div style="display:table;width:100%;break-inside:avoid;page-break-inside:avoid;"><div style="${S.locH}">${loc}</div>${snagRow}</div>`;
+      } else { html += snagRow; }
     });
   });
-
-  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</div>
-  </body></html>`;
-
-  // Show report in in-app viewer — never leave the PWA
+  html += `<div style="${S.footer}">Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div></body></html>`;
   currentReportHtml = html;
-  currentReportName = (p.name || 'site-report').replace(/[^a-z0-9]/gi, '-').toLowerCase() + '-report';
+  currentReportName = (p.name||'snag').replace(/[^a-z0-9]/gi,'-').toLowerCase() + '-report';
   const frame = document.getElementById('reportFrame');
   frame.srcdoc = html;
   const overlay = document.getElementById('report-overlay');
@@ -1555,70 +1431,27 @@ async function generatePDF() {
   const toolbar = document.getElementById('report-toolbar');
   toolbar.style.opacity = '1';
   frame.onload = () => {
-    try {
-      frame.contentDocument.addEventListener('click', () => {
-        toolbar.style.opacity = toolbar.style.opacity === '0' ? '1' : '0';
-        toolbar.style.pointerEvents = toolbar.style.opacity === '0' ? 'none' : 'auto';
-      });
-    } catch(e) {}
+    try { frame.contentDocument.addEventListener('click',()=>{ toolbar.style.opacity = toolbar.style.opacity==='0'?'1':'0'; toolbar.style.pointerEvents = toolbar.style.opacity==='0'?'none':'auto'; }); } catch(e) {}
   };
 }
 
-let currentReportHtml = '';
-let currentReportName = '';
-
-function closeReport() {
-  document.getElementById('report-overlay').style.display = 'none';
-}
-
-function printReport() {
-  const frame = document.getElementById('reportFrame');
-  try {
-    frame.contentWindow.print();
-  } catch(e) {
-    window.print();
-  }
-}
-
+let currentReportHtml = '', currentReportName = '';
+function closeReport() { document.getElementById('report-overlay').style.display = 'none'; }
 function exportHtml() {
-  const blob = new Blob([currentReportHtml], {type: 'text/html'});
-  const file = new File([blob], currentReportName + '.html', {type: 'text/html'});
-  if (navigator.share && navigator.canShare({files: [file]})) {
-    navigator.share({
-      files: [file],
-      title: currentReportName,
-    });
-  } else {
-    // Fallback for browsers that don't support file sharing
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = currentReportName + '.html';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-  }
-}
-
-
-function download(content, filename, type) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], {type}));
-  a.download = filename;
-  a.click();
+  const blob = new Blob([currentReportHtml],{type:'text/html'});
+  const file = new File([blob], currentReportName+'.html',{type:'text/html'});
+  if (navigator.share && navigator.canShare({files:[file]})) { navigator.share({files:[file],title:currentReportName}); }
+  else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=currentReportName+'.html'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); }
 }
 
 // ── MODALS ──
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => {
-    if (e.target === m) m.classList.remove('open');
-  });
-  // Prevent iOS touch events on modal content from bubbling to overlay
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
   const modal = m.querySelector('.modal');
   if (modal) {
-    modal.addEventListener('touchstart', e => e.stopPropagation(), {passive: true});
+    modal.addEventListener('touchstart', e => e.stopPropagation(), {passive:true});
     modal.addEventListener('click', e => e.stopPropagation());
   }
 });
@@ -1627,8 +1460,7 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 let toastTimer;
 function toast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
+  el.textContent = msg; el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
@@ -1637,223 +1469,61 @@ function toast(msg) {
 function initSwipeRow(rowId, cardId) {
   const card = document.getElementById(cardId);
   if (!card) return;
-  let startX = 0, currentX = 0, isDragging = false;
-  const THRESHOLD = 80;
-
-  function onStart(e) {
-    const touch = e.touches ? e.touches[0] : e;
-    startX = touch.clientX;
-    currentX = 0;
-    isDragging = true;
-    card.classList.add('swiping');
-  }
-
-  function onMove(e) {
-    if (!isDragging) return;
-    const touch = e.touches ? e.touches[0] : e;
-    currentX = Math.min(0, touch.clientX - startX);
-    card.style.transform = `translateX(${currentX}px)`;
-  }
-
-  function onEnd() {
-    if (!isDragging) return;
-    isDragging = false;
-    card.classList.remove('swiping');
-    if (currentX < -THRESHOLD) {
-      card.style.transform = `translateX(-${THRESHOLD + 40}px)`;
-    } else {
-      card.style.transform = 'translateX(0)';
-    }
-    currentX = 0;
-  }
-
-  card.addEventListener('touchstart', onStart, { passive: true });
-  card.addEventListener('touchmove', onMove, { passive: true });
-  card.addEventListener('touchend', onEnd);
+  let startX=0, currentX=0, isDragging=false;
+  const THRESHOLD=80;
+  card.addEventListener('touchstart', e => { startX=e.touches[0].clientX; isDragging=true; card.classList.add('swiping'); }, {passive:true});
+  card.addEventListener('touchmove', e => { if (!isDragging) return; currentX=Math.min(0,e.touches[0].clientX-startX); card.style.transform=`translateX(${currentX}px)`; }, {passive:true});
+  card.addEventListener('touchend', () => {
+    if (!isDragging) return; isDragging=false; card.classList.remove('swiping');
+    card.style.transform = currentX < -THRESHOLD ? `translateX(-${THRESHOLD+40}px)` : 'translateX(0)';
+    currentX=0;
+  });
 }
-
-async function deleteReportById(rid) {
-  if (!confirm('Delete this report and all its items?')) return;
-  try {
-    await deleteReportRecord(rid);
-    await renderProjectDetail(currentProjectId, false);
-    toast('Report deleted');
-  } catch(e) {
-    toast('Delete failed — check connection');
-    console.error(e);
-  }
-}
-
-// Migration block removed — data now stored in Supabase
-
-// ── INIT ──
-renderProjects();
-setTopbarActions('projects');
-// Remove old localStorage migration (data now in Supabase)
-</script>
-
-<!-- PWA Service Worker -->
-<script>
 
 // ── ANNOTATION ──
-let annTool = 'freehand';
-let annColour = '#FF3B30';
-let annCanvas, annCtx, annImg;
-let annDrawing = false;
-let annStartX, annStartY;
-let annHistory = []; // snapshots for undo
-let annEditIndex = -1; // which photo in modalPhotos we're editing
+let annTool='freehand', annColour='#FF3B30', annCanvas, annCtx, annImg;
+let annDrawing=false, annStartX, annStartY, annHistory=[], annEditIndex=-1;
 
 function openAnnotator(photoIndex) {
-  annEditIndex = photoIndex;
-  annCanvas = document.getElementById('annotateCanvas');
-  annCtx = annCanvas.getContext('2d');
-  annImg = new Image();
-  annImg.onload = function() {
-    const wrap = document.getElementById('annotateCanvasWrap');
-    const maxW = wrap.clientWidth || window.innerWidth;
-    const maxH = wrap.clientHeight || (window.innerHeight - 160);
-    const scale = Math.min(maxW / annImg.width, maxH / annImg.height, 1);
-    annCanvas.width = Math.round(annImg.width * scale);
-    annCanvas.height = Math.round(annImg.height * scale);
-    annCtx.drawImage(annImg, 0, 0, annCanvas.width, annCanvas.height);
-    annHistory = [annCtx.getImageData(0, 0, annCanvas.width, annCanvas.height)];
-    setAnnTool('freehand', document.getElementById('toolFreehand'));
+  annEditIndex=photoIndex; annCanvas=document.getElementById('annotateCanvas'); annCtx=annCanvas.getContext('2d');
+  annImg=new Image();
+  annImg.onload=function(){
+    const wrap=document.getElementById('annotateCanvasWrap');
+    const maxW=wrap.clientWidth||window.innerWidth, maxH=wrap.clientHeight||(window.innerHeight-160);
+    const scale=Math.min(maxW/annImg.width,maxH/annImg.height,1);
+    annCanvas.width=Math.round(annImg.width*scale); annCanvas.height=Math.round(annImg.height*scale);
+    annCtx.drawImage(annImg,0,0,annCanvas.width,annCanvas.height);
+    annHistory=[annCtx.getImageData(0,0,annCanvas.width,annCanvas.height)];
+    setAnnTool('freehand',document.getElementById('toolFreehand'));
   };
-  annImg.src = modalPhotos[photoIndex];
+  annImg.src=modalPhotos[photoIndex];
   openModal('modal-annotate');
-
-  // Touch events
-  annCanvas.addEventListener('touchstart', annTouchStart, {passive:false});
-  annCanvas.addEventListener('touchmove', annTouchMove, {passive:false});
-  annCanvas.addEventListener('touchend', annTouchEnd, {passive:false});
-  annCanvas.addEventListener('mousedown', annMouseDown);
-  annCanvas.addEventListener('mousemove', annMouseMove);
-  annCanvas.addEventListener('mouseup', annMouseUp);
+  annCanvas.addEventListener('touchstart',annTouchStart,{passive:false});
+  annCanvas.addEventListener('touchmove',annTouchMove,{passive:false});
+  annCanvas.addEventListener('touchend',annTouchEnd,{passive:false});
+  annCanvas.addEventListener('mousedown',annMouseDown);
+  annCanvas.addEventListener('mousemove',annMouseMove);
+  annCanvas.addEventListener('mouseup',annMouseUp);
 }
+function getPos(e,canvas){const r=canvas.getBoundingClientRect();const sx=canvas.width/r.width,sy=canvas.height/r.height;const cx=e.touches?e.touches[0].clientX:e.clientX,cy=e.touches?e.touches[0].clientY:e.clientY;return{x:(cx-r.left)*sx,y:(cy-r.top)*sy};}
+function annTouchStart(e){e.preventDefault();annBegin(getPos(e,annCanvas));}
+function annTouchMove(e){e.preventDefault();annMove(getPos(e,annCanvas));}
+function annTouchEnd(e){e.preventDefault();annEnd();}
+function annMouseDown(e){annBegin(getPos(e,annCanvas));}
+function annMouseMove(e){if(annDrawing)annMove(getPos(e,annCanvas));}
+function annMouseUp(){annEnd();}
+function annBegin(pos){annDrawing=true;annStartX=pos.x;annStartY=pos.y;annCtx.strokeStyle=annColour;annCtx.lineWidth=parseInt(document.getElementById('brushSize').value);annCtx.lineCap='round';annCtx.lineJoin='round';if(annTool==='freehand'){annCtx.beginPath();annCtx.moveTo(pos.x,pos.y);}}
+function annMove(pos){if(!annDrawing)return;const size=parseInt(document.getElementById('brushSize').value);annCtx.strokeStyle=annColour;annCtx.lineWidth=size;if(annTool==='freehand'){annCtx.lineTo(pos.x,pos.y);annCtx.stroke();}else{if(annHistory.length>0)annCtx.putImageData(annHistory[annHistory.length-1],0,0);annCtx.beginPath();if(annTool==='line'){annCtx.moveTo(annStartX,annStartY);annCtx.lineTo(pos.x,pos.y);annCtx.stroke();}else if(annTool==='arrow'){drawArrow(annCtx,annStartX,annStartY,pos.x,pos.y,size);}else if(annTool==='rect'){annCtx.strokeRect(annStartX,annStartY,pos.x-annStartX,pos.y-annStartY);}}}
+function annEnd(){if(!annDrawing)return;annDrawing=false;if(annTool==='freehand')annCtx.closePath();annHistory.push(annCtx.getImageData(0,0,annCanvas.width,annCanvas.height));if(annHistory.length>30)annHistory.shift();}
+function drawArrow(ctx,x1,y1,x2,y2,size){const headLen=Math.max(12,size*3),angle=Math.atan2(y2-y1,x2-x1);ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6),y2-headLen*Math.sin(angle-Math.PI/6));ctx.moveTo(x2,y2);ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6),y2-headLen*Math.sin(angle+Math.PI/6));ctx.stroke();}
+function annotateUndo(){if(annHistory.length<=1)return;annHistory.pop();annCtx.putImageData(annHistory[annHistory.length-1],0,0);}
+function annotateClear(){annCtx.putImageData(annHistory[0],0,0);annHistory=[annHistory[0]];}
+function annotateDone(){if(annEditIndex<0)return;modalPhotos[annEditIndex]=annCanvas.toDataURL('image/jpeg',0.75);closeModal('modal-annotate');renderModalPhotos();annCanvas.removeEventListener('touchstart',annTouchStart);annCanvas.removeEventListener('touchmove',annTouchMove);annCanvas.removeEventListener('touchend',annTouchEnd);annCanvas.removeEventListener('mousedown',annMouseDown);annCanvas.removeEventListener('mousemove',annMouseMove);annCanvas.removeEventListener('mouseup',annMouseUp);}
+function setAnnTool(tool,btn){annTool=tool;document.querySelectorAll('.ann-tool-btn').forEach(b=>{b.style.background='rgba(255,255,255,0.08)';b.style.borderColor='rgba(255,255,255,0.15)';b.style.color='rgba(255,255,255,0.6)';});btn.style.background='rgba(255,255,255,0.2)';btn.style.borderColor='rgba(255,255,255,0.6)';btn.style.color='#fff';}
+function setAnnColour(col,btn){annColour=col;document.querySelectorAll('#colourSwatches button').forEach(b=>b.style.border='2px solid transparent');btn.style.border='2px solid #fff';}
 
-function getPos(e, canvas) {
-  const r = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / r.width;
-  const scaleY = canvas.height / r.height;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: (clientX - r.left) * scaleX, y: (clientY - r.top) * scaleY };
-}
-
-function annTouchStart(e) { e.preventDefault(); annBegin(getPos(e, annCanvas)); }
-function annTouchMove(e) { e.preventDefault(); annMove(getPos(e, annCanvas)); }
-function annTouchEnd(e) { e.preventDefault(); annEnd(); }
-function annMouseDown(e) { annBegin(getPos(e, annCanvas)); }
-function annMouseMove(e) { if (annDrawing) annMove(getPos(e, annCanvas)); }
-function annMouseUp(e) { annEnd(); }
-
-function annBegin(pos) {
-  annDrawing = true;
-  annStartX = pos.x; annStartY = pos.y;
-  annCtx.strokeStyle = annColour;
-  annCtx.lineWidth = parseInt(document.getElementById('brushSize').value);
-  annCtx.lineCap = 'round';
-  annCtx.lineJoin = 'round';
-  if (annTool === 'freehand') {
-    annCtx.beginPath();
-    annCtx.moveTo(pos.x, pos.y);
-  }
-}
-
-function annMove(pos) {
-  if (!annDrawing) return;
-  const size = parseInt(document.getElementById('brushSize').value);
-  annCtx.strokeStyle = annColour;
-  annCtx.lineWidth = size;
-  if (annTool === 'freehand') {
-    annCtx.lineTo(pos.x, pos.y);
-    annCtx.stroke();
-  } else {
-    // For line/arrow/rect: redraw from last saved snapshot
-    if (annHistory.length > 0) annCtx.putImageData(annHistory[annHistory.length-1], 0, 0);
-    annCtx.beginPath();
-    if (annTool === 'line') {
-      annCtx.moveTo(annStartX, annStartY);
-      annCtx.lineTo(pos.x, pos.y);
-      annCtx.stroke();
-    } else if (annTool === 'arrow') {
-      drawArrow(annCtx, annStartX, annStartY, pos.x, pos.y, size);
-    } else if (annTool === 'rect') {
-      annCtx.strokeRect(annStartX, annStartY, pos.x - annStartX, pos.y - annStartY);
-    }
-  }
-}
-
-function annEnd() {
-  if (!annDrawing) return;
-  annDrawing = false;
-  if (annTool === 'freehand') annCtx.closePath();
-  annHistory.push(annCtx.getImageData(0, 0, annCanvas.width, annCanvas.height));
-  if (annHistory.length > 30) annHistory.shift();
-}
-
-function drawArrow(ctx, x1, y1, x2, y2, size) {
-  const headLen = Math.max(12, size * 3);
-  const angle = Math.atan2(y2 - y1, x2 - x1);
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI/6), y2 - headLen * Math.sin(angle - Math.PI/6));
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI/6), y2 - headLen * Math.sin(angle + Math.PI/6));
-  ctx.stroke();
-}
-
-function annotateUndo() {
-  if (annHistory.length <= 1) return;
-  annHistory.pop();
-  annCtx.putImageData(annHistory[annHistory.length-1], 0, 0);
-}
-
-function annotateClear() {
-  annCtx.putImageData(annHistory[0], 0, 0);
-  annHistory = [annHistory[0]];
-}
-
-function annotateDone() {
-  if (annEditIndex < 0) return;
-  modalPhotos[annEditIndex] = annCanvas.toDataURL('image/jpeg', 0.75);
-  closeModal('modal-annotate');
-  renderModalPhotos();
-  // remove listeners
-  annCanvas.removeEventListener('touchstart', annTouchStart);
-  annCanvas.removeEventListener('touchmove', annTouchMove);
-  annCanvas.removeEventListener('touchend', annTouchEnd);
-  annCanvas.removeEventListener('mousedown', annMouseDown);
-  annCanvas.removeEventListener('mousemove', annMouseMove);
-  annCanvas.removeEventListener('mouseup', annMouseUp);
-}
-
-function setAnnTool(tool, btn) {
-  annTool = tool;
-  document.querySelectorAll('.ann-tool-btn').forEach(b => {
-    b.style.background = 'rgba(255,255,255,0.08)';
-    b.style.borderColor = 'rgba(255,255,255,0.15)';
-    b.style.color = 'rgba(255,255,255,0.6)';
-  });
-  btn.style.background = 'rgba(255,255,255,0.2)';
-  btn.style.borderColor = 'rgba(255,255,255,0.6)';
-  btn.style.color = '#fff';
-}
-
-function setAnnColour(col, btn) {
-  annColour = col;
-  document.querySelectorAll('#colourSwatches button').forEach(b => b.style.border = '2px solid transparent');
-  btn.style.border = '2px solid #fff';
-}
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
-
 </body>
 </html>
