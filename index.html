@@ -987,12 +987,21 @@ function renderProjectDetail(pid, switchView) {
 }
 
 // ── REPORTS ──
-function showNewReportModal() {
+const REPORT_LIMIT = 20;
+
+async function showNewReportModal() {
   editingReportId = null;
+  const { count } = await sb.from('snag_reports')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', currentUser.id);
+  if (count >= REPORT_LIMIT) {
+    toast('Report limit reached (' + REPORT_LIMIT + ' max) — delete old reports to create new ones');
+    return;
+  }
   document.getElementById('nr-type').value = 'Snagging Report';
   document.getElementById('nr-date').value = new Date().toISOString().split('T')[0];
   ['nr-surveyor','nr-company','nr-conditions','nr-notes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('reportModalTitle').textContent = 'New report';
+  document.getElementById('reportModalTitle').textContent = 'New report (' + count + '/' + REPORT_LIMIT + ')';
   document.getElementById('reportSaveBtn').textContent = 'Create report';
   document.getElementById('reportDeleteBtn').classList.add('modal-delete-hidden');
   openModal('modal-report');
@@ -1150,8 +1159,10 @@ function snagItemHtml(s) {
   const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' }[s.status] || s.status;
   const priorityEmoji = { low: '↓', medium: '→', high: '↑' }[s.priority] || '';
   const photos = s.photos || [];
-  const thumb = photos[0]
-    ? `<div class="snag-thumb"><img src="${photos[0]}" alt="photo" /></div>`
+  const firstPhoto = photos[0];
+  const firstUrl = firstPhoto ? (typeof firstPhoto === 'string' ? firstPhoto : firstPhoto.url) : null;
+  const thumb = firstUrl
+    ? `<div class="snag-thumb"><img src="${firstUrl}" alt="photo" /></div>`
     : `<div class="snag-thumb">📷</div>`;
   return `<div class="snag-item" onclick="openSnag('${s.id}')">
     ${thumb}
@@ -1199,7 +1210,7 @@ function showNewSnagModal() {
   openModal('modal-snag');
 }
 
-function openSnag(id) {
+async function openSnag(id) {
   const s = getReportSnags(currentReportId).find(x => x.id === id);
   if (!s) return;
   editingSnagId = id;
@@ -1208,7 +1219,12 @@ function openSnag(id) {
   document.getElementById('ns-trade').value = s.trade || '';
   document.getElementById('ns-notes').value = s.notes || '';
   document.getElementById('ns-date').value = s.date_identified || new Date().toISOString().split('T')[0];
-  modalPhotos = s.photos ? [...s.photos] : [];
+  // Refresh signed URLs for storage photos (they expire)
+  modalPhotos = s.photos ? await Promise.all(s.photos.map(async ph => {
+    if (typeof ph === 'string') return ph; // old base64
+    const { data } = await sb.storage.from('snag-photos').createSignedUrl(ph.path, 60 * 60 * 24 * 365);
+    return { url: data?.signedUrl || ph.url, path: ph.path };
+  })) : [];
   modalStatus = s.status || 'open';
   modalPriority = s.priority || 'medium';
   document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
@@ -1232,8 +1248,9 @@ function refreshPriorityBtns() {
   });
 }
 
-function handlePhotoUpload(e) {
-  Array.from(e.target.files).forEach(f => {
+// ── PHOTO UPLOAD TO SUPABASE STORAGE ──
+async function compressToBlob(file) {
+  return new Promise(resolve => {
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
@@ -1247,26 +1264,51 @@ function handlePhotoUpload(e) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        modalPhotos.push(canvas.toDataURL('image/jpeg', 0.65));
-        renderModalPhotos();
+        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.65);
       };
       img.src = ev.target.result;
     };
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(file);
   });
-  e.target.value = '';
 }
+
+async function handlePhotoUpload(e) {
+  const files = Array.from(e.target.files);
+  e.target.value = '';
+  for (const file of files) {
+    const blob = await compressToBlob(file);
+    const filename = currentUser.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
+    const { data, error } = await sb.storage.from('snag-photos').upload(filename, blob, { contentType: 'image/jpeg' });
+    if (error) { toast('Photo upload failed: ' + error.message); continue; }
+    const { data: { publicUrl } } = sb.storage.from('snag-photos').getPublicUrl(filename);
+    // Use signed URL instead (bucket is private)
+    const { data: signed } = await sb.storage.from('snag-photos').createSignedUrl(filename, 60 * 60 * 24 * 365);
+    modalPhotos.push({ url: signed?.signedUrl || '', path: filename });
+    renderModalPhotos();
+  }
+}
+
+function photoUrl(p) { return typeof p === 'string' ? p : p.url; }
+function photoPath(p) { return typeof p === 'string' ? null : p.path; }
 
 function renderModalPhotos() {
   const grid = document.getElementById('modalPhotoGrid');
   grid.innerHTML = modalPhotos.map((p, i) =>
-    `<div class="photo-thumb"><img src="${p}" /><button class="del-photo" onclick="removePhoto(${i})" style="width:28px;height:28px;font-size:16px;" title="Delete photo">×</button><button onclick="openAnnotator(${i})" style="position:absolute;bottom:4px;right:4px;width:28px;height:28px;background:rgba(0,0,0,0.6);border-radius:50%;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Annotate">✎</button></div>`
+    `<div class="photo-thumb"><img src="${photoUrl(p)}" /><button class="del-photo" onclick="removePhoto(${i})" style="width:28px;height:28px;font-size:16px;" title="Delete photo">×</button></div>`
   ).join('') + `<div class="add-photo-btn" onclick="document.getElementById('photoInput').click()">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Add photo
   </div>`;
 }
 
-function removePhoto(i) { modalPhotos.splice(i, 1); renderModalPhotos(); }
+async function removePhoto(i) {
+  const photo = modalPhotos[i];
+  const path = photoPath(photo);
+  if (path) {
+    await sb.storage.from('snag-photos').remove([path]);
+  }
+  modalPhotos.splice(i, 1);
+  renderModalPhotos();
+}
 
 let savingSnag = false;
 async function saveSnagFromModal() {
@@ -1425,7 +1467,7 @@ function generatePDF() {
     items.forEach((s, idx) => {
       const sc = statusColour[s.status]||'#888';
       const sl = statusLabel[s.status]||s.status;
-      const photoHtml = (s.photos&&s.photos.length) ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">${s.photos.map(ph=>`<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${ph}" />`).join('')}</div>` : '';
+      const photoHtml = (s.photos&&s.photos.length) ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;flex-shrink:0;width:32%;margin-left:10px;">${s.photos.map(ph=>`<img style="width:100%;height:100px;object-fit:cover;border-radius:3px;border:1px solid #ddd;display:block;" src="${typeof ph==='string'?ph:ph.url}" />`).join('')}</div>` : '';
       const snagRow = `<div style="${S.snag};break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
         <div style="${S.snagNum}">#${s.ref||s.id.slice(-4)}</div>
         <div style="${S.snagBody}">
@@ -1515,7 +1557,7 @@ function openAnnotator(photoIndex) {
     annHistory=[annCtx.getImageData(0,0,annCanvas.width,annCanvas.height)];
     setAnnTool('freehand',document.getElementById('toolFreehand'));
   };
-  annImg.src=modalPhotos[photoIndex];
+  annImg.src = typeof modalPhotos[photoIndex] === 'string' ? modalPhotos[photoIndex] : modalPhotos[photoIndex].url;
   openModal('modal-annotate');
   annCanvas.addEventListener('touchstart',annTouchStart,{passive:false});
   annCanvas.addEventListener('touchmove',annTouchMove,{passive:false});
@@ -1537,7 +1579,15 @@ function annEnd(){if(!annDrawing)return;annDrawing=false;if(annTool==='freehand'
 function drawArrow(ctx,x1,y1,x2,y2,size){const headLen=Math.max(12,size*3),angle=Math.atan2(y2-y1,x2-x1);ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-headLen*Math.cos(angle-Math.PI/6),y2-headLen*Math.sin(angle-Math.PI/6));ctx.moveTo(x2,y2);ctx.lineTo(x2-headLen*Math.cos(angle+Math.PI/6),y2-headLen*Math.sin(angle+Math.PI/6));ctx.stroke();}
 function annotateUndo(){if(annHistory.length<=1)return;annHistory.pop();annCtx.putImageData(annHistory[annHistory.length-1],0,0);}
 function annotateClear(){annCtx.putImageData(annHistory[0],0,0);annHistory=[annHistory[0]];}
-function annotateDone(){if(annEditIndex<0)return;modalPhotos[annEditIndex]=annCanvas.toDataURL('image/jpeg',0.75);closeModal('modal-annotate');renderModalPhotos();annCanvas.removeEventListener('touchstart',annTouchStart);annCanvas.removeEventListener('touchmove',annTouchMove);annCanvas.removeEventListener('touchend',annTouchEnd);annCanvas.removeEventListener('mousedown',annMouseDown);annCanvas.removeEventListener('mousemove',annMouseMove);annCanvas.removeEventListener('mouseup',annMouseUp);}
+async function annotateDone(){
+  if(annEditIndex<0)return;
+  const blob = await new Promise(r => annCanvas.toBlob(r,'image/jpeg',0.75));
+  const existing = modalPhotos[annEditIndex];
+  const path = typeof existing === 'string' ? (currentUser.id + '/' + Date.now() + '_ann.jpg') : existing.path;
+  await sb.storage.from('snag-photos').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+  const { data } = await sb.storage.from('snag-photos').createSignedUrl(path, 60*60*24*365);
+  modalPhotos[annEditIndex] = { url: data?.signedUrl || '', path };
+  closeModal('modal-annotate');renderModalPhotos();annCanvas.removeEventListener('touchstart',annTouchStart);annCanvas.removeEventListener('touchmove',annTouchMove);annCanvas.removeEventListener('touchend',annTouchEnd);annCanvas.removeEventListener('mousedown',annMouseDown);annCanvas.removeEventListener('mousemove',annMouseMove);annCanvas.removeEventListener('mouseup',annMouseUp);}
 function setAnnTool(tool,btn){annTool=tool;document.querySelectorAll('.ann-tool-btn').forEach(b=>{b.style.background='rgba(255,255,255,0.08)';b.style.borderColor='rgba(255,255,255,0.15)';b.style.color='rgba(255,255,255,0.6)';});btn.style.background='rgba(255,255,255,0.2)';btn.style.borderColor='rgba(255,255,255,0.6)';btn.style.color='#fff';}
 function setAnnColour(col,btn){annColour=col;document.querySelectorAll('#colourSwatches button').forEach(b=>b.style.border='2px solid transparent');btn.style.border='2px solid #fff';}
 
