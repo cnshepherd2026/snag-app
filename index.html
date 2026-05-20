@@ -712,31 +712,41 @@ function doSignOut() {
 }
 
 // ── AUTH STATE ──
-let authResolved = false;
-// Safety net — if Supabase doesn't fire within 5s, show login screen
-setTimeout(() => {
-  if (!authResolved) {
-    authResolved = true;
-    document.getElementById('loading-overlay').style.display = 'none';
+
+// On load: check session immediately via getSession() — much faster than waiting for the listener
+(async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user) {
+      currentUser = session.user;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('loading-overlay').style.display = 'flex';
+      await initApp();
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+    } else {
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+  } catch(e) {
+    // On any error, fall back to login screen
     document.getElementById('login-screen').style.display = 'flex';
   }
-}, 5000);
+})();
 
+// Listen for ongoing auth changes (sign in / sign out)
 sb.auth.onAuthStateChange(async (event, session) => {
-  authResolved = true;
-  if (session?.user) {
+  if (event === 'SIGNED_IN' && session?.user && !currentUser) {
     currentUser = session.user;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('loading-overlay').style.display = 'flex';
     await initApp();
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('main-app').style.display = 'flex';
-  } else {
+  } else if (event === 'SIGNED_OUT') {
     currentUser = null;
     document.getElementById('main-app').style.display = 'none';
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
-    // reset app state
     projectsCache = [];
     reportsCache = {};
     snagsCache = {};
