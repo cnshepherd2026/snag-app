@@ -971,7 +971,10 @@ function renderProjectDetail(pid, switchView) {
             <div class="project-name">${r.type}</div>
             <div class="project-ref">${r.date ? fmtUKDate(r.date) : ''}${r.surveyor ? ' · ' + r.surveyor : ''}</div>
           </div>
-          <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="status-pill status-open" style="font-size:10px;">${items.length} item${items.length!==1?'s':''}</span>
+            <button onclick="event.stopPropagation();deleteReportById('${r.id}')" title="Delete report" style="background:none;border:none;color:var(--text3);font-size:20px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:4px;transition:color 0.15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">×</button>
+          </div>
         </div>
         <div class="project-meta">
           ${open ? `<span style="color:var(--red)">${open} open</span>` : ''}
