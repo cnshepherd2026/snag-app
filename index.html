@@ -401,28 +401,12 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
   <div class="login-logo"><span>S</span>nag</div>
   <div class="login-sub">Site Inspection</div>
   <div class="login-box">
-    <div id="login-mode">
-      <label>Email</label>
-      <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
-      <label>Password</label>
-      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" />
-      <div class="login-err" id="login-err"></div>
-      <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
-      <div class="login-toggle">
-        No account? <button onclick="switchToSignup()">Create one</button>
-      </div>
-    </div>
-    <div id="signup-mode" style="display:none;">
-      <label>Email</label>
-      <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email" />
-      <label>Password</label>
-      <input type="password" id="signup-password" placeholder="Min 6 characters" autocomplete="new-password" />
-      <div class="login-err" id="signup-err"></div>
-      <button class="login-btn" id="signup-btn" onclick="doSignup()">Create account</button>
-      <div class="login-toggle">
-        Already have an account? <button onclick="switchToLogin()">Sign in</button>
-      </div>
-    </div>
+    <label>Email</label>
+    <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+    <label>Password</label>
+    <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password" />
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign in</button>
   </div>
 </div>
 
@@ -672,15 +656,6 @@ function showErr(id, msg) {
 }
 function hideErr(id) { document.getElementById(id).classList.remove('show'); }
 
-function switchToSignup() {
-  document.getElementById('login-mode').style.display = 'none';
-  document.getElementById('signup-mode').style.display = 'block';
-}
-function switchToLogin() {
-  document.getElementById('signup-mode').style.display = 'none';
-  document.getElementById('login-mode').style.display = 'block';
-}
-
 async function doLogin() {
   hideErr('login-err');
   const email = document.getElementById('auth-email').value.trim();
@@ -691,20 +666,6 @@ async function doLogin() {
   const { error } = await sb.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = 'Sign in';
   if (error) { showErr('login-err', error.message); }
-}
-
-async function doSignup() {
-  hideErr('signup-err');
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  if (!email || !password) { showErr('signup-err', 'Please enter email and password.'); return; }
-  if (password.length < 6) { showErr('signup-err', 'Password must be at least 6 characters.'); return; }
-  const btn = document.getElementById('signup-btn');
-  btn.disabled = true; btn.textContent = 'Creating account…';
-  const { error } = await sb.auth.signUp({ email, password });
-  btn.disabled = false; btn.textContent = 'Create account';
-  if (error) { showErr('signup-err', error.message); }
-  else { showErr('signup-err', 'Check your email to confirm your account, then sign in.'); }
 }
 
 function doSignOut() {
