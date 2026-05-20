@@ -1065,9 +1065,22 @@ async function saveReport() {
   closeModal('modal-report');
 }
 
+// ── STORAGE CLEANUP HELPER ──
+async function deleteStoragePhotosForSnags(snags) {
+  const paths = [];
+  (snags || []).forEach(s => {
+    (s.photos || []).forEach(ph => {
+      if (ph && typeof ph === 'object' && ph.path) paths.push(ph.path);
+    });
+  });
+  if (paths.length) await sb.storage.from('snag-photos').remove(paths);
+}
+
 async function deleteReport() {
   if (!editingReportId) return;
   if (!confirm('Delete this report and all its items?')) return;
+  const { data: snagItems } = await sb.from('snag_items').select('photos').eq('report_id', editingReportId).eq('user_id', currentUser.id);
+  await deleteStoragePhotosForSnags(snagItems);
   await sb.from('snag_items').delete().eq('report_id', editingReportId).eq('user_id', currentUser.id);
   await sb.from('snag_reports').delete().eq('id', editingReportId).eq('user_id', currentUser.id);
   const pid = currentProjectId;
@@ -1084,6 +1097,8 @@ async function deleteReport() {
 
 async function deleteReportById(rid) {
   if (!confirm('Delete this report and all its items?')) return;
+  const { data: snagItems } = await sb.from('snag_items').select('photos').eq('report_id', rid).eq('user_id', currentUser.id);
+  await deleteStoragePhotosForSnags(snagItems);
   await sb.from('snag_items').delete().eq('report_id', rid).eq('user_id', currentUser.id);
   await sb.from('snag_reports').delete().eq('id', rid).eq('user_id', currentUser.id);
   const pid = currentProjectId;
@@ -1363,6 +1378,8 @@ async function saveSnagFromModal() {
 async function deleteSnagFromModal() {
   if (!editingSnagId) return;
   if (!confirm('Delete this item?')) return;
+  const snag = (snagsCache[currentReportId] || []).find(s => s.id === editingSnagId);
+  await deleteStoragePhotosForSnags(snag ? [snag] : []);
   await sb.from('snag_items').delete().eq('id', editingSnagId).eq('user_id', currentUser.id);
   snagsCache[currentReportId] = (snagsCache[currentReportId] || []).filter(s => s.id !== editingSnagId);
   editingSnagId = null;
@@ -1374,6 +1391,8 @@ async function deleteSnagFromModal() {
 async function deleteSnagById(id, e) {
   e.stopPropagation();
   if (!confirm('Delete this item?')) return;
+  const snag = (snagsCache[currentReportId] || []).find(s => s.id === id);
+  await deleteStoragePhotosForSnags(snag ? [snag] : []);
   await sb.from('snag_items').delete().eq('id', id).eq('user_id', currentUser.id);
   snagsCache[currentReportId] = (snagsCache[currentReportId] || []).filter(s => s.id !== id);
   renderReportDetail(currentReportId, false);
