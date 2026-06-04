@@ -470,9 +470,6 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     </div>
     <div class="filter-bar">
       <button class="filter-chip active" onclick="filterSnags('all',this)">All</button>
-      <button class="filter-chip" onclick="filterSnags('open',this)">Open</button>
-      <button class="filter-chip" onclick="filterSnags('in-progress',this)">In progress</button>
-      <button class="filter-chip" onclick="filterSnags('complete',this)">Complete</button>
     </div>
     <div class="scroll" id="snagsList"></div>
     <button class="fab" onclick="showNewSnagModal()">
@@ -503,6 +500,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
 <div id="report-overlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff;">
   <div id="report-toolbar" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); display:flex; gap:10px; background:#1a1a18; padding:10px 16px; border-radius:50px; box-shadow:0 4px 20px rgba(0,0,0,0.3); z-index:500; transition:opacity 0.25s;">
     <button onclick="closeReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--body); font-size:15px; cursor:pointer;">‹ Back</button>
+    <button onclick="printReport()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Print</button>
     <button onclick="exportHtml()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; height:38px; padding:0 16px; border-radius:30px; font-family:var(--display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Share Report</button>
   </div>
   <iframe id="reportFrame" style="position:absolute; inset:0; width:100%; height:100%; border:none; background:#fff;" sandbox="allow-same-origin allow-scripts allow-popups"></iframe>
@@ -573,13 +571,6 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
         <div class="form-section"><label class="form-label">Trade</label><input class="form-input" id="ns-trade" placeholder="e.g. Joinery" list="tradeSuggestions" /><datalist id="tradeSuggestions"><option value="Joinery"><option value="Plastering"><option value="Decoration"><option value="M&amp;E"><option value="Roofing"><option value="Drainage"><option value="Brickwork"><option value="Tiling"><option value="Flooring"><option value="Glazing"><option value="External works"></datalist></div>
       </div>
       <div class="form-section"><label class="form-label">Date identified</label><input class="form-input" id="ns-date" type="date" /></div>
-      <div class="form-section"><label class="form-label">Status</label>
-        <div class="status-group">
-          <button class="status-opt sel-open" data-val="open" onclick="selectStatus(this)">Open</button>
-          <button class="status-opt" data-val="in-progress" onclick="selectStatus(this)">In progress</button>
-          <button class="status-opt" data-val="complete" onclick="selectStatus(this)">Complete</button>
-        </div>
-      </div>
       <div class="form-section"><label class="form-label">Priority</label>
         <div class="priority-group">
           <button class="priority-opt" data-val="low" onclick="selectPriority(this)">Low</button>
@@ -1132,10 +1123,7 @@ function renderReportDetail(rid, switchView) {
   const inProg = snags.filter(s => s.status === 'in-progress').length;
   const done = snags.filter(s => s.status === 'complete').length;
   document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card red"><div class="stat-num">${open}</div><div class="stat-label">Open</div></div>
-    <div class="stat-card amber"><div class="stat-num">${inProg}</div><div class="stat-label">In progress</div></div>
-    <div class="stat-card green"><div class="stat-num">${done}</div><div class="stat-label">Complete</div></div>
-    <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num">${snags.length}</div><div class="stat-label">Total items</div></div>
   `;
   const allLocs = [...new Set(snags.map(s => s.location).filter(Boolean))].sort();
   document.getElementById('locationSuggestions').innerHTML = allLocs.map(l => `<option value="${l}">`).join('');
@@ -1159,8 +1147,6 @@ function renderReportDetail(rid, switchView) {
       <div class="location-header open" onclick="toggleLocation(this)">
         <span class="location-name">${loc}</span>
         <div style="display:flex;gap:6px;align-items:center;">
-          ${locOpen ? `<span class="count-badge cb-open">${locOpen} open</span>` : ''}
-          ${locDone ? `<span class="count-badge cb-done">${locDone} done</span>` : ''}
           <span class="chevron open">▾</span>
         </div>
       </div>
@@ -1185,7 +1171,6 @@ function snagItemHtml(s) {
       <div class="snag-desc">${s.description || 'No description'}</div>
       <div class="snag-meta">
         <span class="snag-ref">#${s.ref || s.id.slice(-4)}</span>
-        <span class="snag-status ${statusClass}">${statusLabel}</span>
         ${s.trade ? `<span style="font-size:11px;color:var(--text3);">${s.trade}</span>` : ''}
         ${s.date_identified ? `<span style="font-size:11px;color:var(--text3);">${fmtUKDate(s.date_identified)}</span>` : ''}
         ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
@@ -1463,7 +1448,7 @@ function generatePDF() {
     footer:'text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;',
   };
   const projDateFmt = r.date ? fmtUKDate(r.date) : new Date().toLocaleDateString('en-GB');
-  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;}body{margin:0;padding:16px 20px;}img{max-width:100%;height:auto;}@page{size:A4 portrait;margin:8mm;}@media print{body{margin:0;}}</style></head><body style="${S.body}">`;
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;}body{margin:0;padding:16px 20px;}img{max-width:100%;height:auto;}@page{size:A4 portrait;margin:8mm;}@media print{html,body{margin:0;padding:8mm;overflow:visible!important;scrollbar-width:none;-ms-overflow-style:none;}::-webkit-scrollbar{display:none;}}</style></head><body style="${S.body}">`;
   html += `<div style="${S.cover}"><div style="${S.h1}">${r.type}</div><div style="${S.h2}">${p.name}</div>
     <div style="${S.meta}">
       <div><div style="${S.metaKey}">Reference</div><div style="${S.metaVal}">${p.ref||'—'}</div></div>
@@ -1477,8 +1462,6 @@ function generatePDF() {
     ${r.notes ? `<div style="font-size:9pt;color:#444;margin-top:10px;padding:8px;background:#f9f9f8;border-radius:3px;">${r.notes}</div>` : ''}
     <div style="${S.stats}">
       <div style="${S.stat}"><div style="${S.statN};color:#C0392B;">${open}</div><div style="${S.statL}">Open</div></div>
-      <div style="${S.stat}"><div style="${S.statN};color:#B45309;">${inProg}</div><div style="${S.statL}">In progress</div></div>
-      <div style="${S.stat}"><div style="${S.statN};color:#4A8024;">${done}</div><div style="${S.statL}">Complete</div></div>
       <div style="${S.stat}"><div style="${S.statN};">${snags.length}</div><div style="${S.statL}">Total</div></div>
     </div>
   </div>`;
@@ -1492,7 +1475,6 @@ function generatePDF() {
         <div style="${S.snagBody}">
           <div style="${S.snagDesc}">${s.description||''}</div>
           <div style="${S.snagMeta}">${[s.date_identified?fmtUKDate(s.date_identified):null,s.trade,s.priority?'Priority: '+s.priority:null].filter(Boolean).join(' · ')}</div>
-          <span style="${S.snagStatus};background:${sc}22;color:${sc};">${sl}</span>
           ${s.notes?`<div style="${S.snagNotes}">${s.notes}</div>`:''}
         </div>${photoHtml}
       </div>`;
@@ -1517,6 +1499,11 @@ function generatePDF() {
 
 let currentReportHtml = '', currentReportName = '';
 function closeReport() { document.getElementById('report-overlay').style.display = 'none'; }
+function printReport() {
+  const frame = document.getElementById('reportFrame');
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+}
 function exportHtml() {
   const blob = new Blob([currentReportHtml],{type:'text/html'});
   const file = new File([blob], currentReportName+'.html',{type:'text/html'});
