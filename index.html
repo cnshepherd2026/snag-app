@@ -566,18 +566,8 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
     <div class="modal-header"><h3 id="snagModalTitle">New snag item</h3></div>
     <div class="modal-body">
       <div class="form-section"><label class="form-label">Description</label><textarea class="form-textarea" id="ns-desc" placeholder="Describe the defect or issue…"></textarea></div>
-      <div class="form-row">
-        <div class="form-section"><label class="form-label">Location</label><input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" /><datalist id="locationSuggestions"></datalist></div>
-        <div class="form-section"><label class="form-label">Trade</label><input class="form-input" id="ns-trade" placeholder="e.g. Joinery" list="tradeSuggestions" /><datalist id="tradeSuggestions"><option value="Joinery"><option value="Plastering"><option value="Decoration"><option value="M&amp;E"><option value="Roofing"><option value="Drainage"><option value="Brickwork"><option value="Tiling"><option value="Flooring"><option value="Glazing"><option value="External works"></datalist></div>
-      </div>
+      <div class="form-section"><label class="form-label">Location</label><input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" /><datalist id="locationSuggestions"></datalist></div>
       <div class="form-section"><label class="form-label">Date identified</label><input class="form-input" id="ns-date" type="date" /></div>
-      <div class="form-section"><label class="form-label">Priority</label>
-        <div class="priority-group">
-          <button class="priority-opt" data-val="low" onclick="selectPriority(this)">Low</button>
-          <button class="priority-opt sel-medium" data-val="medium" onclick="selectPriority(this)">Medium</button>
-          <button class="priority-opt" data-val="high" onclick="selectPriority(this)">High</button>
-        </div>
-      </div>
       <div class="form-section"><label class="form-label">Photos</label><div class="photo-grid" id="modalPhotoGrid"></div><input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotoUpload(event)" /></div>
       <div class="form-section"><label class="form-label">Notes</label><textarea class="form-textarea" id="ns-notes" placeholder="Additional notes, contractor response…" style="min-height:60px;"></textarea></div>
     </div>
@@ -770,7 +760,7 @@ let editingSnagId = null;
 let editingProjectId = null;
 let modalPhotos = [];
 let modalStatus = 'open';
-let modalPriority = 'medium';
+
 let snagFilter = 'all';
 let projectFilter = 'all';
 
@@ -1195,15 +1185,13 @@ function showNewSnagModal() {
   editingSnagId = null;
   document.getElementById('ns-desc').value = '';
   document.getElementById('ns-location').value = '';
-  document.getElementById('ns-trade').value = '';
   document.getElementById('ns-notes').value = '';
   document.getElementById('ns-date').value = new Date().toISOString().split('T')[0];
   modalPhotos = [];
   modalStatus = 'open';
-  modalPriority = 'medium';
   document.getElementById('snagModalTitle').textContent = 'New snag item';
   document.getElementById('modalDeleteBtn').classList.add('modal-delete-hidden');
-  refreshStatusBtns(); refreshPriorityBtns(); renderModalPhotos();
+  refreshStatusBtns(); renderModalPhotos();
   openModal('modal-snag');
 }
 
@@ -1213,7 +1201,6 @@ async function openSnag(id) {
   editingSnagId = id;
   document.getElementById('ns-desc').value = s.description || '';
   document.getElementById('ns-location').value = s.location || '';
-  document.getElementById('ns-trade').value = s.trade || '';
   document.getElementById('ns-notes').value = s.notes || '';
   document.getElementById('ns-date').value = s.date_identified || new Date().toISOString().split('T')[0];
   // Refresh signed URLs for storage photos (they expire)
@@ -1223,10 +1210,9 @@ async function openSnag(id) {
     return { url: data?.signedUrl || ph.url, path: ph.path };
   })) : [];
   modalStatus = s.status || 'open';
-  modalPriority = s.priority || 'medium';
   document.getElementById('snagModalTitle').textContent = 'Edit item #' + (s.ref || s.id.slice(-4));
   document.getElementById('modalDeleteBtn').classList.remove('modal-delete-hidden');
-  refreshStatusBtns(); refreshPriorityBtns(); renderModalPhotos();
+  refreshStatusBtns(); renderModalPhotos();
   openModal('modal-snag');
 }
 
@@ -1235,13 +1221,6 @@ function refreshStatusBtns() {
   document.querySelectorAll('.status-opt').forEach(b => {
     b.className = 'status-opt';
     if (b.dataset.val === modalStatus) b.classList.add(modalStatus === 'open' ? 'sel-open' : modalStatus === 'in-progress' ? 'sel-progress' : 'sel-done');
-  });
-}
-function selectPriority(btn) { modalPriority = btn.dataset.val; refreshPriorityBtns(); }
-function refreshPriorityBtns() {
-  document.querySelectorAll('.priority-opt').forEach(b => {
-    b.className = 'priority-opt';
-    if (b.dataset.val === modalPriority) b.classList.add(modalPriority === 'low' ? 'sel-low' : modalPriority === 'medium' ? 'sel-medium' : 'sel-high');
   });
 }
 
@@ -1318,11 +1297,9 @@ async function saveSnagFromModal() {
   const data = {
     description: desc,
     location: document.getElementById('ns-location').value.trim(),
-    trade: document.getElementById('ns-trade').value.trim(),
     notes: document.getElementById('ns-notes').value.trim(),
     date_identified: document.getElementById('ns-date').value,
     status: modalStatus,
-    priority: modalPriority,
     photos: [...modalPhotos],
     updated_at: new Date().toISOString(),
   };
