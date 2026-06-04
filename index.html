@@ -1158,7 +1158,6 @@ function renderReportDetail(rid, switchView) {
 function snagItemHtml(s) {
   const statusClass = { open: 'ss-open', 'in-progress': 'ss-progress', complete: 'ss-done' }[s.status] || 'ss-open';
   const statusLabel = { open: 'Open', 'in-progress': 'In progress', complete: 'Complete' }[s.status] || s.status;
-  const priorityEmoji = { low: '↓', medium: '→', high: '↑' }[s.priority] || '';
   const photos = s.photos || [];
   const firstPhoto = photos[0];
   const firstUrl = firstPhoto ? (typeof firstPhoto === 'string' ? firstPhoto : firstPhoto.url) : null;
@@ -1171,9 +1170,7 @@ function snagItemHtml(s) {
       <div class="snag-desc">${s.description || 'No description'}</div>
       <div class="snag-meta">
         <span class="snag-ref">#${s.ref || s.id.slice(-4)}</span>
-        ${s.trade ? `<span style="font-size:11px;color:var(--text3);">${s.trade}</span>` : ''}
         ${s.date_identified ? `<span style="font-size:11px;color:var(--text3);">${fmtUKDate(s.date_identified)}</span>` : ''}
-        ${priorityEmoji ? `<span class="snag-priority" title="Priority: ${s.priority}">${priorityEmoji}</span>` : ''}
       </div>
     </div>
     <button onclick="deleteSnagById('${s.id}', event)" style="flex-shrink:0; background:none; border:none; color:var(--text3); font-size:20px; padding:8px 4px 8px 12px; cursor:pointer; line-height:1;" title="Delete item">×</button>
@@ -1500,9 +1497,13 @@ function generatePDF() {
 let currentReportHtml = '', currentReportName = '';
 function closeReport() { document.getElementById('report-overlay').style.display = 'none'; }
 function printReport() {
-  const frame = document.getElementById('reportFrame');
-  frame.contentWindow.focus();
-  frame.contentWindow.print();
+  const w = window.open('', '_blank');
+  if (!w) { toast('Allow pop-ups to print'); return; }
+  w.document.open();
+  w.document.write(currentReportHtml);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 600);
 }
 function exportHtml() {
   const blob = new Blob([currentReportHtml],{type:'text/html'});
