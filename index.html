@@ -1407,6 +1407,8 @@ function generatePDF() {
     img{max-width:100%;height:auto;}
     @page{size:A4 portrait;margin:10mm;}
     @media print{html,body{margin:0;padding:10mm;overflow:visible!important;}::-webkit-scrollbar{display:none;}}
+    .loc-header{position:sticky;top:0;z-index:5;box-shadow:0 2px 6px rgba(0,0,0,0.15);}
+    @media print{.loc-header{position:static;box-shadow:none;}}
   </style></head><body>`;
 
   // ── HEADER ──
@@ -1439,24 +1441,32 @@ function generatePDF() {
 
   // ── SNAG ITEMS ──
   Object.entries(byLoc).forEach(([loc, items]) => {
-    rhtml += `<div>
-      <div style="font-size:8pt;font-weight:700;padding:4px 8px;background:#1a1a18;color:#fff;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0;break-after:avoid;page-break-after:avoid;">${loc}</div>`;
+    rhtml += `<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+      <thead>
+        <tr><th colspan="2" class="loc-header" style="text-align:left;font-size:11pt;font-weight:800;padding:8px 12px;background:#1a1a18;color:#fff;letter-spacing:0.06em;text-transform:uppercase;">${loc}</th></tr>
+      </thead>
+      <tbody>`;
     items.forEach(s => {
       const photoCols = Math.min(s.photos ? s.photos.length : 0, 2);
       const photoHtml = (s.photos && s.photos.length)
         ? `<div style="display:grid;grid-template-columns:repeat(${photoCols},1fr);gap:5px;flex-shrink:0;width:${photoCols===1?'42%':'46%'};margin-left:12px;">${s.photos.map(ph => `<img style="width:100%;height:auto;display:block;border-radius:2px;border:1px solid #ddd;" src="${typeof ph==='string'?ph:ph.url}" />`).join('')}</div>`
         : '';
-      rhtml += `<div style="display:flex;gap:0;padding:8px 0;border-bottom:1px solid #eee;break-inside:avoid;page-break-inside:avoid;align-items:flex-start;">
-        <div style="font-family:monospace;font-size:8pt;color:#A09D98;min-width:36px;padding-top:1px;flex-shrink:0;">#${s.ref||s.id.slice(-4)}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:10pt;font-weight:700;margin-bottom:2px;">${s.description||''}</div>
-          <div style="font-size:8pt;color:#6B6960;">${s.date_identified ? fmtUKDate(s.date_identified) : ''}</div>
-          ${s.notes ? `<div style="font-size:9pt;color:#444;margin-top:5px;padding:5px 7px;background:#f9f9f8;border-radius:3px;">${s.notes}</div>` : ''}
-        </div>${photoHtml}
-      </div>`;
+      rhtml += `<tr style="break-inside:avoid;page-break-inside:avoid;">
+        <td style="width:36px;vertical-align:top;padding:8px 0;border-bottom:1px solid #eee;font-family:monospace;font-size:8pt;color:#A09D98;">#${s.ref||s.id.slice(-4)}</td>
+        <td style="vertical-align:top;padding:8px 8px 8px 0;border-bottom:1px solid #eee;">
+          <div style="display:flex;align-items:flex-start;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:10pt;font-weight:700;margin-bottom:2px;">${s.description||''}</div>
+              <div style="font-size:8pt;color:#6B6960;">${s.date_identified ? fmtUKDate(s.date_identified) : ''}</div>
+              ${s.notes ? `<div style="font-size:9pt;color:#444;margin-top:5px;padding:5px 7px;background:#f9f9f8;border-radius:3px;">${s.notes}</div>` : ''}
+            </div>${photoHtml}
+          </div>
+        </td>
+      </tr>`;
     });
-    rhtml += `</div>`;
+    rhtml += `</tbody></table>`;
   });
+
 
   rhtml += `<div style="text-align:center;font-size:7pt;color:#A09D98;padding:16px 0 8px;border-top:1px solid #eee;margin-top:12px;">Generated ${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</div>`;
   rhtml += `</body></html>`;
