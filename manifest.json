@@ -1,6 +1,6 @@
 {
-  "name": "Snag — Site Inspection",
-  "short_name": "Snag",
+  "name": "Site Report — Site Inspection",
+  "short_name": "Site Report",
   "description": "Contract administration and snagging app for building surveyors",
   "start_url": "/index.html",
   "display": "standalone",
