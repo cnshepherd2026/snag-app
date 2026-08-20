@@ -568,7 +568,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--body); backgroun
       <div class="form-section"><label class="form-label">Description</label><textarea class="form-textarea" id="ns-desc" placeholder="Describe the defect or issue…"></textarea></div>
       <div class="form-section"><label class="form-label">Location</label><input class="form-input" id="ns-location" placeholder="e.g. Level 2 / Flat 4" list="locationSuggestions" /><datalist id="locationSuggestions"></datalist></div>
       <div class="form-section"><label class="form-label">Date identified</label><input class="form-input" id="ns-date" type="date" /></div>
-      <div class="form-section"><label class="form-label">Photos</label><div class="photo-grid" id="modalPhotoGrid"></div><input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotoUpload(event)" /></div>
+      <div class="form-section"><label class="form-label">Photos</label><div class="photo-grid" id="modalPhotoGrid"></div><input type="file" id="photoInput" accept="image/*" multiple onchange="handlePhotoUpload(event)" /></div>
       <div class="form-section"><label class="form-label">Notes</label><textarea class="form-textarea" id="ns-notes" placeholder="Additional notes, contractor response…" style="min-height:60px;"></textarea></div>
     </div>
     <div class="modal-actions">
