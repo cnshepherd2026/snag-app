@@ -1226,26 +1226,29 @@ function refreshStatusBtns() {
 
 // ── PHOTO UPLOAD TO SUPABASE STORAGE ──
 // Load the HEIC converter on demand (only when an Apple HEIC photo is picked)
-function ensureHeicConverter() {
-  if (window.heic2any) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const sc = document.createElement('script');
-    sc.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-    sc.onload = () => resolve();
-    sc.onerror = () => reject(new Error('Could not load the HEIC converter (no internet?)'));
-    document.head.appendChild(sc);
-  });
+let heicModPromise = null;
+function loadHeicConverter() {
+  if (!heicModPromise) {
+    heicModPromise = import('https://cdn.jsdelivr.net/npm/heic-to@1.5.2/+esm')
+      .catch(err => { heicModPromise = null; throw new Error('Could not load the photo converter (check your internet connection)'); });
+  }
+  return heicModPromise;
 }
 
 async function compressToBlob(file) {
-  // Windows/Chrome can't read HEIC, so convert Apple photos to JPEG first
+  // Windows/Chrome can't read HEIC, so convert Apple photos to JPEG first.
+  // Match on file extension too — Windows often reports no MIME type for .heic files.
   const isHeic = /image\/(heic|heif)/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
   if (isHeic) {
     toast('Converting photo…');
-    await ensureHeicConverter();
-    let converted = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-    if (Array.isArray(converted)) converted = converted[0];
-    file = converted;
+    const mod = await loadHeicConverter();
+    try {
+      let converted = await mod.heicTo({ blob: file, type: 'image/jpeg', quality: 0.9 });
+      if (Array.isArray(converted)) converted = converted[0];
+      file = converted;
+    } catch (err) {
+      throw new Error('This HEIC photo could not be converted. On the iPhone set Camera > Formats to "Most Compatible", or save the photo as JPEG and try again.');
+    }
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
